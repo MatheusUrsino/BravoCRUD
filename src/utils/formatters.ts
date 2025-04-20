@@ -49,3 +49,36 @@ export const formatCNPJ = (cnpj: string): string => {
     
     return date.toLocaleDateString('pt-BR');
   };
+
+
+
+/**
+ * Formata valores percentuais (0% a 100%+)
+ * @param value - Valor numérico ou string (aceita decimais e porcentagens)
+ * @returns Valor formatado (ex: "12,34%", "100%", "250%")
+ */
+export const formatPercentage = (value: number | string): string => {
+  if (!value && value !== 0) return '';
+  
+  // Converte string para número
+  let num = typeof value === 'string' 
+    ? parseFloat(value.replace(/[^\d.,-]/g, '').replace(',', '.')) 
+    : value;
+  
+  if (isNaN(num)) return '';
+  
+  // Converte decimais para porcentagem (0.1234 → 12.34)
+  // Mas mantém valores >= 1 como porcentagem direta (100 → 100%)
+  if (Math.abs(num) < 1) {
+    num = num * 100;
+  }
+  
+  // Formatação inteligente (2 casas decimais para < 100%, inteiro para >= 100%)
+  const options = {
+    style: 'percent' as const,
+    minimumFractionDigits: num % 1 !== 0 ? 2 : 0,
+    maximumFractionDigits: num % 1 !== 0 ? 2 : 0
+  };
+  
+  return new Intl.NumberFormat('pt-BR', options).format(num / 100);
+};

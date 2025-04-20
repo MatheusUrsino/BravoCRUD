@@ -1,21 +1,22 @@
 import Link from "next/link";
-import { FiEdit2, FiTrash2, FiFile, FiCheck, FiClock } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiCheck, FiClock } from "react-icons/fi";
 import { formatCNPJ, formatDate } from "@/utils/formatters";
 import { Models } from "appwrite";
 import { FaFilePdf } from "react-icons/fa";
 
 interface RegistrosTableRowProps {
-  data: Models.Document;
+  data: Models.Document & {
+    pdf_anexo1_id?: string;
+    pdf_anexo2_id?: string;
+  };
   isExpanded: boolean;
   onExpand: (id: string) => void;
   onSelectForDeletion: (id: string) => void;
   onDownloadPdf: (fileId: string, fileName: string) => void;
-  getSortIcon?: (key: string) => React.ReactNode; // Adicione esta linha
 }
 
 export const RegistrosTableRow = ({
   data,
-  isExpanded,
   onExpand,
   onSelectForDeletion,
   onDownloadPdf,
@@ -67,7 +68,7 @@ export const RegistrosTableRow = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadPdf(data.pdf_anexo1_id, `Anexo1_${data.empresa}.pdf`);
+                    onDownloadPdf(data.pdf_anexo1_id!, `Anexo1_${data.empresa}.pdf`);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
                   title="Baixar Anexo 1"
@@ -79,7 +80,7 @@ export const RegistrosTableRow = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadPdf(data.pdf_anexo2_id, `Anexo2_${data.empresa}.pdf`);
+                    onDownloadPdf(data.pdf_anexo2_id!, `Anexo2_${data.empresa}.pdf`);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
                   title="Baixar Anexo 2"

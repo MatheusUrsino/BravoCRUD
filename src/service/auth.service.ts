@@ -2,7 +2,7 @@ import { Account, Models, Teams, AppwriteException } from "appwrite";
 import client from "../config/appwrite.config";
 
 declare module 'appwrite' {
-  interface User<Preferences> {
+  interface User<> {
     teamId?: string;
   }
 }

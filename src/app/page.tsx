@@ -3,12 +3,13 @@
 import { AuthService, RegistersService } from "@/service";
 import { useEffect, useState } from "react";
 import { Models } from "appwrite";
-import { FiCalendar, FiDollarSign, FiPercent, FiCheck, FiClock, FiAlertTriangle, FiFileText, FiTrendingUp, FiUsers, FiPlus } from "react-icons/fi";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ApexOptions } from 'apexcharts';
+import { FiCalendar, FiCheck, FiClock, FiFileText, FiPlus, FiTrendingUp } from "react-icons/fi";
+import Head from "next/head";
 
 
 // Carregamento dinâmico para melhor performance
@@ -113,16 +114,16 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Meta tags para SEO - Adicionar no layout principal */}
-      {/* <Head>
+       <Head>
         <title>Dashboard - Gestão de Filiais</title>
         <meta name="description" content="Painel de controle para gestão de filiais e registros fiscais" />
         <meta property="og:title" content="Dashboard - Gestão de Filiais" />
         <meta property="og:description" content="Painel de controle para gestão de filiais e registros fiscais" />
-      </Head> */}
+      </Head>
 
       <header className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Dashboard - Gestão de Filiais</h1>
+          <h1 className="text-xl font-medium text-white">Dashboard - Gestão de Filiais</h1>
           <div className="flex items-center space-x-4">
             <Link
               href="/registros"
@@ -177,7 +178,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Faturamento Total</p>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.revenue)}</p>
+                <p className="text-xl font-bold text-gray-900">{formatCurrency(stats.revenue)}</p>
               </div>
               <div className="p-3 rounded-lg bg-purple-100 text-purple-600">
                 <FiTrendingUp size={24} />

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type FC, useState } from "react"
 import LoadingSpinner from "./LoadingSpinner"
-import { formatCNPJ, formatCurrency, formatDate } from "../utils/formatters"
+import { formatCNPJ, formatCurrency, formatDate, formatPercentage } from "../utils/formatters"
 interface IField {
     name: string
     label: string
@@ -90,7 +90,7 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
             case 'date':
                 return formatDate(value)
             case 'percentage':
-                return `${parseFloat(value).toFixed(2)}%`
+                return formatPercentage(value)
             default:
                 return value
 

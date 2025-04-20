@@ -9,7 +9,7 @@ import { AuthService, RegistersService } from "@/service";
 import { Storage, Account } from 'appwrite';
 import client from "@/config/appwrite.config";
 import { Filter, AvailableField } from "@/types/registros";
-import { formatCNPJ, formatCurrency, formatDate } from "@/utils/formatters";
+import { formatCNPJ } from "@/utils/formatters";
 import { toast } from "react-toastify";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';

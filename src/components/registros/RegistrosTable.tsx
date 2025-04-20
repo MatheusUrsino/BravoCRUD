@@ -1,4 +1,4 @@
-import { FiChevronDown, FiChevronUp, FiCalendar, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 import { RegistrosTableRow } from "./RegistrosTableRow";
 import { RegistrosTableExpandedRow } from "./RegistrosTableExpandedRow";
 import { Filter } from "@/types/registros"; // Defina este tipo
@@ -21,19 +21,13 @@ interface RegistrosTableProps {
 export const RegistrosTable = ({
   filteredDocuments,
   filters,
-  sortConfig,
   expandedRow,
   userNames,
-  onRequestSort,
   onExpandRow,
   onSelectForDeletion,
   onClearFilters,
   onDownloadPdf,
 }: RegistrosTableProps) => {
-  const getSortIcon = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key) return <FiChevronDown className="opacity-30" />;
-    return sortConfig.direction === 'ascending' ? <FiChevronUp /> : <FiChevronDown />;
-  };
 
   return (
     <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">

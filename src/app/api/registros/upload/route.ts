@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     try {
         const formData = await request.formData();
         const storage = new Storage(client);
-        const bucketId = process.env.NEXT_APPWRITE_BUCKET_ID;
+        const bucketId = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID;
 
         if (!bucketId) {
             return NextResponse.json(

@@ -38,6 +38,7 @@ const EditRegisterPage = () => {
     const [register, setRegister] = useState({
         empresa: "",
         loja: "",
+        docSap: "",
         cnpj: "",
         im: "",
         municipio: "",
@@ -75,7 +76,7 @@ const EditRegisterPage = () => {
 
         try {
             const requiredFields = [
-                "empresa", "loja", "cnpj", "im", "municipio",
+                "empresa", "loja", "docSap", "cnpj", "im", "municipio",
                 "status_empresa", "estado", "vcto_guias_iss_proprio", "data_emissao"
             ];
 
@@ -127,6 +128,7 @@ const EditRegisterPage = () => {
             const payload = {
                 empresa: Number(formData.get("empresa")),
                 loja: formData.get("loja")?.toString() || '',
+                docSap: formData.get("docSap")?.toString() || '',
                 cnpj: formData.get("cnpj")?.toString().replace(/\D/g, '') || '',
                 im: formData.get("im")?.toString() || '',
                 municipio: formData.get("municipio")?.toString() || '',
@@ -223,6 +225,7 @@ const EditRegisterPage = () => {
                         ...registerData,
                         empresa: registerData.empresa || "",
                         loja: registerData.loja || "",
+                        docSap: registerData.docSap || "",
                         cnpj: registerData.cnpj ? formatCNPJ(registerData.cnpj) : "", // Formata o CNPJ
                         im: registerData.im || "",
                         municipio: registerData.municipio || "",
@@ -306,6 +309,14 @@ const EditRegisterPage = () => {
                                         label: "LOJA",
                                         type: "text",
                                         value: register.loja,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "docSap",
+                                        label: "DOC SAP",
+                                        type: "text",
+                                        value: register.docSap,
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },

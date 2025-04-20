@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         const fileUrl = storage.getFileView(bucketId, fileId);
         
         return NextResponse.json({ url: fileUrl.toString() });
-    } catch (error) {
+    } catch (error: any) {
         return NextResponse.json(
             { error: 'Erro ao recuperar arquivo' },
             { status: 500 }

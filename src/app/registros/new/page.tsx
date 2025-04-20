@@ -16,13 +16,18 @@ const AddRegisterPage = () => {
     const [autoFields, setAutoFields] = useState({
         responsavelNome: '',
         responsavelId: '',
-        data_emissao: new Date().toISOString().slice(0, 16)
+        data_emissao: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
     });
 
     const statusEmpresaOptions = [
         { value: "Ativa", label: "Ativa" },
         { value: "Inativa", label: "Inativa" },
         { value: "Suspensa", label: "Suspensa" }
+    ];
+    
+    const statusOptions = [
+        { value: "Concluído", label: "Concluído" },
+        { value: "Pendente", label: "Pendente" },
     ];
 
     useEffect(() => {
@@ -45,29 +50,33 @@ const AddRegisterPage = () => {
 
     const handleSubmit = async (formData: FormData) => {
         setLoading(true);
-
+    
         try {
             const requiredFields = [
-                "empresa", "loja", "cnpj", "im", "municipio",
-                "status_empresa", "estado"
+                "empresa", "loja", "docSap", "cnpj", "im", "municipio",
+                "status_empresa", "estado", "vcto_guias_iss_proprio"
             ];
-
+    
             for (const field of requiredFields) {
                 if (!formData.get(field)) {
                     throw new Error(`Por favor, preencha o campo: ${field.toUpperCase()}`);
                 }
             }
-
+    
             const account = await authService.getAccount();
             const teamId = account.teamId;
-
+    
             if (!teamId) {
                 throw new Error("Usuário não está associado a nenhum time");
             }
-
+    
+            const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
+            const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
+    
             const payload = {
                 empresa: Number(formData.get("empresa")),
                 loja: formData.get("loja")?.toString() || '',
+                docSap: formData.get("docSap")?.toString() || '',
                 cnpj: formData.get("cnpj")?.toString().replace(/\D/g, '') || '',
                 im: formData.get("im")?.toString() || '',
                 municipio: formData.get("municipio")?.toString() || '',
@@ -84,39 +93,52 @@ const AddRegisterPage = () => {
                 historico: formData.get("historico")?.toString() || null,
                 status: formData.get("status")?.toString() || null,
                 ocorrencia: formData.get("ocorrencia")?.toString() || null,
-                vcto_guias_iss_proprio: formData.get("vcto_guias_iss_proprio") ?
-                    new Date(formData.get("vcto_guias_iss_proprio")?.toString() || '').toISOString() : null,
+                vcto_guias_iss_proprio: formattedVctoDate,
                 data_emissao: new Date(autoFields.data_emissao).toISOString(),
                 qtd: formData.get("qtd") ?
                     parseInt(formData.get("qtd")?.toString() || '0') : null,
                 responsavel: autoFields.responsavelId,
                 teamId: teamId
             };
-
+    
             const registerResponse = await registerService.AddRegister(payload);
-
+    
             const pdfAnexo1 = formData.get("pdf_anexo1");
             const pdfAnexo2 = formData.get("pdf_anexo2");
             const hasFiles = (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) ||
                 (pdfAnexo2 instanceof File && pdfAnexo2.size > 0);
-
+    
             if (hasFiles) {
                 const filesFormData = new FormData();
-
+    
                 if (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) {
                     filesFormData.append('pdf_anexo1', pdfAnexo1);
                 }
                 if (pdfAnexo2 instanceof File && pdfAnexo2.size > 0) {
                     filesFormData.append('pdf_anexo2', pdfAnexo2);
                 }
-
+    
                 filesFormData.append('registerId', registerResponse.$id);
-                await registerService.AddRegisterWithFiles(filesFormData);
+    
+                const uploadResponse = await registerService.AddRegisterWithFiles(filesFormData);
+    
+                if (uploadResponse.success && uploadResponse.results) {
+                    const fileIds: any = {};
+                    uploadResponse.results.forEach((result: any) => {
+                        if (result.field === 'pdf_anexo1') fileIds.pdf_anexo1_id = result.fileId;
+                        if (result.field === 'pdf_anexo2') fileIds.pdf_anexo2_id = result.fileId;
+                    });
+    
+                    await registerService.update(registerResponse.$id, {
+                        ...payload,
+                        ...fileIds
+                      });
+                }
             }
-
+    
             toast.success("Registro criado com sucesso!");
             router.push("/registros");
-
+    
         } catch (err: any) {
             toast.error(err.message || "Ocorreu um erro ao criar o registro");
             console.error(err);
@@ -124,7 +146,7 @@ const AddRegisterPage = () => {
             setLoading(false);
         }
     };
-
+    
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
@@ -167,14 +189,21 @@ const AddRegisterPage = () => {
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
+                                    name: "docSap",
+                                    label: "DOC SAP",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1 sm:col-span-1"
+                                },
+                                {
                                     name: "cnpj",
                                     label: "CNPJ",
                                     type: "text",
                                     mask: "cnpj",
                                     placeholder: "00.000.000/0000-00",
                                     required: true,
-                                    maxLength: 18, // 14 dígitos + 4 caracteres de formatação
-                                   
+                                    maxLength: 18,
+                                    containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
                                     name: "im",
@@ -251,7 +280,12 @@ const AddRegisterPage = () => {
                                 {
                                     name: "status",
                                     label: "STATUS",
-                                    type: "text",
+                                    type: "select",
+                                    options: [
+                                        { value: "", label: "Selecione o status do registro" },
+                                        ...statusOptions
+                                    ],
+                                    required: true,
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
@@ -263,7 +297,7 @@ const AddRegisterPage = () => {
                                 {
                                     name: "vcto_guias_iss_proprio",
                                     label: "VCTO GUIAS ISS PRÓPRIO",
-                                    type: "datetime-local",
+                                    type: "date",  // Changed to date-only input
                                     required: true,
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
@@ -279,8 +313,8 @@ const AddRegisterPage = () => {
                                 {
                                     name: "data_emissao_display",
                                     label: "DATA - EMISSÃO",
-                                    type: "datetime-local",
-                                    value: autoFields.data_emissao,
+                                    type: "date",
+                                    value: autoFields.data_emissao.split('T')[0],
                                     readOnly: true,
                                     required: true,
                                     containerClass: "col-span-1 sm:col-span-1"

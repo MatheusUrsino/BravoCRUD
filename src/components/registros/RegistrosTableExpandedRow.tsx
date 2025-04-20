@@ -9,7 +9,6 @@ interface RegistrosTableExpandedRowProps {
 
 export const RegistrosTableExpandedRow = ({ 
   data, 
-  userNames 
 }: RegistrosTableExpandedRowProps) => {
   return (
     <tr className="bg-blue-50">
