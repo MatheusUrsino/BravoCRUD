@@ -1,11 +1,12 @@
 // app/cadastro/page.tsx
 "use client"
 
-import { AuthService } from "@/service";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import AuthForm from "@/components/AuthForm";
+import AuthForm from "../../components/AuthForm";
+import { AuthService } from "../../service";
 
 const RegisterPage = () => {
     const [loading, setLoading] = useState<boolean>(false);

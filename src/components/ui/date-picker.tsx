@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 interface DatePickerProps {
   value: string;

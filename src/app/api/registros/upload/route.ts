@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Storage, ID } from 'appwrite';
-import client from '@/config/appwrite.config';
+import client from '../../../../config/appwrite.config';
 
 export const config = {
     api: {
@@ -30,10 +30,11 @@ export async function POST(request: Request) {
         for (const { field, file } of files) {
             if (file instanceof File && file.size > 0) {
                 const fileBuffer = await file.arrayBuffer();
+                const blob = new Blob([fileBuffer], { type: file.type });
                 const uploadedFile = await storage.createFile(
                     bucketId,
                     ID.unique(),
-                    new File([fileBuffer], file.name, { type: file.type })
+                    new File([blob], file.name, { type: file.type })
                 );
                 
                 results.push({

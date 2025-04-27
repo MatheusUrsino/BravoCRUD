@@ -1,16 +1,17 @@
 "use client"
 
-import { AuthService, RegistersService } from "@/service";
+/// <reference lib="dom" />
 import { useEffect, useState } from "react";
 import { Models } from "appwrite";
-import { formatCurrency, formatDate } from "@/utils/formatters";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ApexOptions } from 'apexcharts';
+import { ApexOptions } from "apexcharts";
 import { FiCalendar, FiCheck, FiClock, FiFileText, FiPlus, FiTrendingUp, FiX, FiFilter } from "react-icons/fi";
 import Head from "next/head";
 import Select from 'react-select';
+import { formatDate } from "../utils/formatters";
+import { AuthService, RegistersService } from "../service";
 
 // Carregamento dinâmico para melhor performance
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });

@@ -1,12 +1,12 @@
 // app/login/page.tsx
 "use client"
 
-import { AuthService } from "@/service";
+import { AuthService } from "../../service";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import Image from "next/image";
-import AuthForm from "@/components/AuthForm";
+import AuthForm from "../../components/AuthForm";
 
 const LoginPage = () => {
     const [loading, setLoading] = useState<boolean>(false);

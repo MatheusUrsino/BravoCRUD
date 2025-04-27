@@ -1,7 +1,7 @@
 // app/api/registros/download/route.ts
 import { NextResponse } from 'next/server';
 import { Storage } from 'appwrite';
-import client from '@/config/appwrite.config';
+import client from '../../../../config/appwrite.config';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
