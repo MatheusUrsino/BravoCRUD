@@ -22,7 +22,7 @@ export const formatCNPJ = (cnpj: string): string => {
    * @returns Valor formatado (1.234,56)
    */
   export const formatCurrency = (value: number | string): string => {
-    if (!value && value !== 0) return '';
+    if (value === null || value === undefined || value === '') return '';
     
     const num = typeof value === 'string' 
         ? parseFloat(value.replace(/[^\d]/g, '')) / 100 

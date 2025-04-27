@@ -6,7 +6,7 @@ import { RegistrosFilters } from "@/components/registros/RegistrosFilters";
 import { RegistrosTable } from "@/components/registros/RegistrosTable";
 import { DeleteConfirmationModal } from "@/components/registros/DeleteConfirmationModal";
 import { AuthService, RegistersService } from "@/service";
-import { Storage, Account } from 'appwrite';
+import { Storage, Account as AppwriteAccount } from 'appwrite';
 import client from "@/config/appwrite.config";
 import { Filter, AvailableField } from "@/types/registros";
 import { formatCNPJ } from "@/utils/formatters";
@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { FiX } from "react-icons/fi";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function RegistrosPage() {
   const [user, setUser] = useState<any>(null);
@@ -29,10 +30,11 @@ export default function RegistrosPage() {
   const [newFilterType, setNewFilterType] = useState("text");
   const [dateFilterValue, setDateFilterValue] = useState("");
   const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const storage = new Storage(client);
   const bucketId = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID;
-  const account = new Account(client);
+  const account = new AppwriteAccount(client);
 
   const availableFields: AvailableField[] = [
     { value: "all", label: "Todos os campos", type: "text" },
@@ -44,11 +46,13 @@ export default function RegistrosPage() {
     { value: "vcto_guias_iss_proprio", label: "Vencimento ISS", type: "date" },
     { value: "data_emissao", label: "Data Emissão", type: "date" },
   ];
-
+  const handleSelectForDeletion = (id: string) => {
+    setSelectedId(id);
+    setShowConfirm(true);
+  };
   const authService = AuthService.getInstance();
   const registersService = RegistersService.getInstance();
 
-  // Função para ajustar timezone
   const adjustTimezone = (dateString: string): string => {
     if (!dateString) return '';
     try {
@@ -59,18 +63,6 @@ export default function RegistrosPage() {
     }
   };
 
-  // Converte data BR (DD/MM/AAAA) para ISO (AAAA-MM-DD)
-  const brToIsoDate = (dateString: string): string => {
-    if (!dateString) return '';
-    try {
-      const [day, month, year] = dateString.split('/');
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    } catch {
-      return '';
-    }
-  };
-
-  // Formata data para exibição no padrão brasileiro
   const formatDateBr = (dateString: string): string => {
     if (!dateString) return '';
     try {
@@ -86,7 +78,7 @@ export default function RegistrosPage() {
 
   const fetchUserNames = async (userIds: string[]) => {
     const names: Record<string, string> = {};
-    
+
     for (const userId of userIds) {
       try {
         const user = await account.get(userId);
@@ -96,7 +88,7 @@ export default function RegistrosPage() {
         names[userId] = "Usuário desconhecido";
       }
     }
-    
+
     setUserNames(names);
   };
 
@@ -172,23 +164,21 @@ export default function RegistrosPage() {
   };
 
   const addFilter = () => {
-    if (!newFilterValue.trim() && newFilterType !== "date") return;
-    if (newFilterType === "date" && !dateFilterValue) return;
-
-    // Validação do formato de data brasileiro
-    if (newFilterType === "date") {
-      const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-      if (!dateRegex.test(dateFilterValue)) {
-        toast.error("Formato de data inválido. Use DD/MM/AAAA");
-        return;
-      }
+    if (newFilterType !== "date" && !newFilterValue.trim()) {
+      toast.error("Por favor, insira um valor para filtrar");
+      return;
     }
 
-    const value = newFilterType === "date" ? brToIsoDate(dateFilterValue) : newFilterValue;
+    if (newFilterType === "date" && !dateFilterValue) {
+      toast.error("Por favor, selecione uma data");
+      return;
+    }
 
     const newFilter: Filter = {
       id: Date.now().toString(),
-      value,
+      value: newFilterType === "date"
+        ? new Date(dateFilterValue).toISOString().split('T')[0]
+        : newFilterValue.toLowerCase(),
       field: newFilterField,
       type: newFilterType
     };
@@ -196,6 +186,7 @@ export default function RegistrosPage() {
     setFilters([...filters, newFilter]);
     setNewFilterValue("");
     setDateFilterValue("");
+    setDatePickerOpen(false);
   };
 
   const removeFilter = (id: string) => {
@@ -226,25 +217,37 @@ export default function RegistrosPage() {
 
     return sortedDocuments.filter((doc) => {
       return filters.every(filter => {
-        const searchTerm = filter.value.toLowerCase();
-
-        if (filter.field === "all") {
-          return Object.values(doc).some(value => {
-            const safeValue = String(value ?? '').toLowerCase();
-            return safeValue.includes(searchTerm);
-          });
-        } else {
-          let fieldValue;
-          if (filter.field === "responsavel") {
-            fieldValue = userNames[doc.responsavel] || doc.responsavel || '';
-          } else if (filter.type === "date") {
-            // Para filtro de data, comparamos no formato ISO
-            const docDate = doc[filter.field] ? new Date(doc[filter.field]).toISOString().split('T')[0] : '';
-            return docDate.includes(searchTerm);
+        if (filter.type !== "date") {
+          const searchTerm = filter.value.toLowerCase();
+          if (filter.field === "all") {
+            return Object.values(doc).some(value => {
+              const safeValue = String(value ?? '').toLowerCase();
+              return safeValue.includes(searchTerm);
+            });
           } else {
-            fieldValue = String(doc[filter.field] ?? '');
+            let fieldValue;
+            if (filter.field === "responsavel") {
+              fieldValue = userNames[doc.responsavel] || doc.responsavel || '';
+            } else {
+              fieldValue = String(doc[filter.field] ?? '');
+            }
+            return fieldValue.toLowerCase().includes(searchTerm);
           }
-          return fieldValue.toLowerCase().includes(searchTerm);
+        } else {
+          const filterDate = new Date(filter.value);
+          if (isNaN(filterDate.getTime())) return false;
+
+          const docDateValue = doc[filter.field];
+          if (!docDateValue) return false;
+
+          const docDate = new Date(docDateValue);
+          if (isNaN(docDate.getTime())) return false;
+
+          return (
+            docDate.getFullYear() === filterDate.getFullYear() &&
+            docDate.getMonth() === filterDate.getMonth() &&
+            docDate.getDate() === filterDate.getDate()
+          );
         }
       });
     });
@@ -264,11 +267,11 @@ export default function RegistrosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <RegistrosHeader 
-        onExport={exportToExcel} 
-        hasData={filteredDocuments.length > 0} 
+      <RegistrosHeader
+        onExport={exportToExcel}
+        hasData={filteredDocuments.length > 0}
       />
-      
+
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <RegistrosFilters
           filters={filters}
@@ -283,23 +286,35 @@ export default function RegistrosPage() {
             setNewFilterField(value);
             const fieldType = availableFields.find(f => f.value === value)?.type || "text";
             setNewFilterType(fieldType);
+            if (fieldType === "date") {
+              setDatePickerOpen(true);
+            } else {
+              setDatePickerOpen(false);
+            }
           }}
           onValueChange={setNewFilterValue}
-          onDateChange={(value) => {
-            // Formatação automática da data enquanto digita
-            let formattedValue = value.replace(/\D/g, '');
-            if (formattedValue.length > 2) {
-              formattedValue = formattedValue.replace(/^(\d{2})/, '$1/');
+          // No seu page.tsx, onde você usa o DatePicker
+          onDateChange={(date) => {
+            if (date) {
+              // Adiciona 1 dia à data
+              date.setDate(date.getDate() + 1);
+
+              // Formata como YYYY-MM-DD (sem informações de fuso horário)
+              const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+              setDateFilterValue(formatted);
+            } else {
+              setDateFilterValue("");
             }
-            if (formattedValue.length > 5) {
-              formattedValue = formattedValue.replace(/^(\d{2}\/\d{2})/, '$1/');
-            }
-            setDateFilterValue(formattedValue.substring(0, 10));
+
           }}
+
           onClearValue={() => {
             setNewFilterValue("");
             setDateFilterValue("");
+            setDatePickerOpen(false);
           }}
+          datePickerOpen={datePickerOpen}
+          setDatePickerOpen={setDatePickerOpen}
         />
 
         <div className="mb-4 flex justify-between items-center">
@@ -324,7 +339,7 @@ export default function RegistrosPage() {
           userNames={userNames}
           onRequestSort={requestSort}
           onExpandRow={(id) => setExpandedRow(expandedRow === id ? null : id)}
-          onSelectForDeletion={setSelectedId}
+          onSelectForDeletion={handleSelectForDeletion}
           onClearFilters={() => setFilters([])}
           onDownloadPdf={downloadPdf}
         />

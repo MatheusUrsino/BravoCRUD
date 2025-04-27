@@ -13,18 +13,78 @@ const AddRegisterPage = () => {
     const authService = AuthService.getInstance();
     const registerService = RegistersService.getInstance();
 
+    const [formValues, setFormValues] = useState({
+        base_calculo: "",
+        aliquota: "",
+        multa: "",
+        juros: "",
+        taxa: ""
+    });
+
+    const calculateVlIssqn = () => {
+        // Converte os valores para formato numérico adequado
+        const base = parseFloat(
+            formValues.base_calculo
+                ?.replace(/\./g, '')
+                .replace(',', '.') || "0"
+        );
+
+        const aliquota = parseFloat(
+            formValues.aliquota
+                ?.replace('%', '')
+                .replace(',', '.') || "0"
+        );
+
+        const multa = parseFloat(
+            formValues.multa
+                ?.replace(/\./g, '')
+                .replace(',', '.') || "0"
+        );
+
+        const juros = parseFloat(
+            formValues.juros
+                ?.replace(/\./g, '')
+                .replace(',', '.') || "0"
+        );
+
+        const taxa = parseFloat(
+            formValues.taxa
+                ?.replace(/\./g, '')
+                .replace(',', '.') || "0"
+        );
+
+        // Realiza o cálculo completo
+        const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
+
+        return {
+            raw: vlIssqn, // Valor numérico para o payload
+            formatted: vlIssqn.toFixed(2).replace('.', ',') // Valor formatado para exibição
+        };
+    };
+
     const [autoFields, setAutoFields] = useState({
         responsavelNome: '',
         responsavelId: '',
-        data_emissao: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+        data_emissao: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+        vl_issqn: ((parseFloat(formValues.base_calculo || "0") * parseFloat(formValues.aliquota || "0") / 100) + parseFloat(formValues.multa || "0") + parseFloat(formValues.juros || "0") + parseFloat(formValues.taxa || "0")).toFixed(2).replace('.', ',')
     });
+
+
+
+
+    const handleFieldChange = (name: string, value: string) => {
+        setFormValues(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
 
     const statusEmpresaOptions = [
         { value: "Ativa", label: "Ativa" },
         { value: "Inativa", label: "Inativa" },
         { value: "Suspensa", label: "Suspensa" }
     ];
-    
+
     const statusOptions = [
         { value: "Concluído", label: "Concluído" },
         { value: "Pendente", label: "Pendente" },
@@ -50,29 +110,32 @@ const AddRegisterPage = () => {
 
     const handleSubmit = async (formData: FormData) => {
         setLoading(true);
-    
+
         try {
             const requiredFields = [
                 "empresa", "loja", "docSap", "cnpj", "im", "municipio",
                 "status_empresa", "estado", "vcto_guias_iss_proprio"
             ];
-    
+
             for (const field of requiredFields) {
                 if (!formData.get(field)) {
                     throw new Error(`Por favor, preencha o campo: ${field.toUpperCase()}`);
                 }
             }
-    
+
             const account = await authService.getAccount();
             const teamId = account.teamId;
-    
+
             if (!teamId) {
                 throw new Error("Usuário não está associado a nenhum time");
             }
-    
+
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
             const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
-    
+
+            // Calcula o valor final do ISSQN
+            const issqnValue = calculateVlIssqn();
+
             const payload = {
                 empresa: Number(formData.get("empresa")),
                 loja: formData.get("loja")?.toString() || '',
@@ -83,13 +146,19 @@ const AddRegisterPage = () => {
                 status_empresa: formData.get("status_empresa")?.toString() || '',
                 estado: formData.get("estado")?.toString().toUpperCase() || '',
                 faturamento: formData.get("faturamento") ?
-                    parseFloat(formData.get("faturamento")?.toString().replace(",", ".") || '0') : null,
+                    parseFloat(formData.get("faturamento")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
                 base_calculo: formData.get("base_calculo") ?
-                    parseFloat(formData.get("base_calculo")?.toString().replace(",", ".") || '0') : null,
+                    parseFloat(formData.get("base_calculo")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
                 aliquota: formData.get("aliquota") ?
-                    parseFloat(formData.get("aliquota")?.toString().replace(",", ".") || '0') : null,
+                    parseFloat(formData.get("aliquota")?.toString().replace('%', '').replace(',', '.') || '0') : null,
+                multa: formData.get("multa") ?
+                    parseFloat(formData.get("multa")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
+                juros: formData.get("juros") ?
+                    parseFloat(formData.get("juros")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
+                taxa: formData.get("taxa") ?
+                    parseFloat(formData.get("taxa")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
                 vl_issqn: formData.get("vl_issqn") ?
-                    parseFloat(formData.get("vl_issqn")?.toString().replace(",", ".") || '0') : null,
+                    parseFloat(autoFields.vl_issqn?.toString().replace(/\./g, '').replace(',', '.') || '0') : null, // Usa o valor numérico calculado
                 historico: formData.get("historico")?.toString() || null,
                 status: formData.get("status")?.toString() || null,
                 ocorrencia: formData.get("ocorrencia")?.toString() || null,
@@ -100,45 +169,45 @@ const AddRegisterPage = () => {
                 responsavel: autoFields.responsavelId,
                 teamId: teamId
             };
-    
+
             const registerResponse = await registerService.AddRegister(payload);
-    
+
             const pdfAnexo1 = formData.get("pdf_anexo1");
             const pdfAnexo2 = formData.get("pdf_anexo2");
             const hasFiles = (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) ||
                 (pdfAnexo2 instanceof File && pdfAnexo2.size > 0);
-    
+
             if (hasFiles) {
                 const filesFormData = new FormData();
-    
+
                 if (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) {
                     filesFormData.append('pdf_anexo1', pdfAnexo1);
                 }
                 if (pdfAnexo2 instanceof File && pdfAnexo2.size > 0) {
                     filesFormData.append('pdf_anexo2', pdfAnexo2);
                 }
-    
+
                 filesFormData.append('registerId', registerResponse.$id);
-    
+
                 const uploadResponse = await registerService.AddRegisterWithFiles(filesFormData);
-    
+
                 if (uploadResponse.success && uploadResponse.results) {
                     const fileIds: any = {};
                     uploadResponse.results.forEach((result: any) => {
                         if (result.field === 'pdf_anexo1') fileIds.pdf_anexo1_id = result.fileId;
                         if (result.field === 'pdf_anexo2') fileIds.pdf_anexo2_id = result.fileId;
                     });
-    
+
                     await registerService.update(registerResponse.$id, {
                         ...payload,
                         ...fileIds
-                      });
+                    });
                 }
             }
-    
+
             toast.success("Registro criado com sucesso!");
             router.push("/registros");
-    
+
         } catch (err: any) {
             toast.error(err.message || "Ocorreu um erro ao criar o registro");
             console.error(err);
@@ -146,7 +215,7 @@ const AddRegisterPage = () => {
             setLoading(false);
         }
     };
-    
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
@@ -253,6 +322,7 @@ const AddRegisterPage = () => {
                                     type: "text",
                                     placeholder: "0,00",
                                     mask: "currency",
+                                    onChange: (event) => handleFieldChange("base_calculo", event.target.value),
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
@@ -261,6 +331,34 @@ const AddRegisterPage = () => {
                                     type: "text",
                                     placeholder: "0,00%",
                                     mask: "percentage",
+                                    onChange: (event) => handleFieldChange("aliquota", event.target.value),
+                                    containerClass: "col-span-1 sm:col-span-1"
+                                },
+                                {
+                                    name: "multa",
+                                    label: "MULTA",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("multa", event.target.value),
+                                    containerClass: "col-span-1 sm:col-span-1"
+                                },
+                                {
+                                    name: "juros",
+                                    label: "JUROS",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("juros", event.target.value),
+                                    containerClass: "col-span-1 sm:col-span-1"
+                                },
+                                {
+                                    name: "taxa",
+                                    label: "TAXA",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("taxa", event.target.value),
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
@@ -269,6 +367,8 @@ const AddRegisterPage = () => {
                                     type: "text",
                                     placeholder: "0,00",
                                     mask: "currency",
+                                    value: autoFields.vl_issqn,
+                                    readOnly: true,
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },
                                 {
@@ -297,7 +397,7 @@ const AddRegisterPage = () => {
                                 {
                                     name: "vcto_guias_iss_proprio",
                                     label: "VCTO GUIAS ISS PRÓPRIO",
-                                    type: "date",  // Changed to date-only input
+                                    type: "date",
                                     required: true,
                                     containerClass: "col-span-1 sm:col-span-1"
                                 },

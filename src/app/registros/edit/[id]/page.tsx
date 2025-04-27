@@ -48,6 +48,9 @@ const EditRegisterPage = () => {
         faturamento: "",
         base_calculo: "",
         aliquota: "",
+        multa: "",
+        juros: "",
+        taxa: "",
         vl_issqn: "",
         historico: "",
         status: "",
@@ -65,6 +68,27 @@ const EditRegisterPage = () => {
         pdf_anexo1: null,
         pdf_anexo2: null
     });
+
+    const calculateVlIssqn = () => {
+        const base = parseFloat(register.base_calculo?.replace(",", ".") || "0");
+        const aliquota = parseFloat(register.aliquota?.replace(",", ".") || "0");
+        const multa = parseFloat(register.multa?.replace(",", ".") || "0");
+        const juros = parseFloat(register.juros?.replace(",", ".") || "0");
+        const taxa = parseFloat(register.taxa?.replace(",", ".") || "0");
+
+        const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
+        return vlIssqn.toFixed(2).replace(".", ",");
+    };
+
+    useEffect(() => {
+        if (register.base_calculo && register.aliquota) {
+            const calculatedVlIssqn = calculateVlIssqn();
+            setRegister(prev => ({
+                ...prev,
+                vl_issqn: calculatedVlIssqn
+            }));
+        }
+    }, [register.base_calculo, register.aliquota, register.multa, register.juros, register.taxa]);
 
     const handleSubmit = async (formData: FormData) => {
         if (!id) {
@@ -140,6 +164,12 @@ const EditRegisterPage = () => {
                     parseFloat(formData.get("base_calculo")?.toString().replace(",", ".") || '0') : null,
                 aliquota: formData.get("aliquota") ?
                     parseFloat(formData.get("aliquota")?.toString().replace(",", ".") || '0') : null,
+                multa: formData.get("multa") ?
+                    parseFloat(formData.get("multa")?.toString().replace(",", ".") || '0') : null,
+                juros: formData.get("juros") ?
+                    parseFloat(formData.get("juros")?.toString().replace(",", ".") || '0') : null,
+                taxa: formData.get("taxa") ?
+                    parseFloat(formData.get("taxa")?.toString().replace(",", ".") || '0') : null,
                 vl_issqn: formData.get("vl_issqn") ?
                     parseFloat(formData.get("vl_issqn")?.toString().replace(",", ".") || '0') : null,
                 historico: formData.get("historico")?.toString() || null,
@@ -226,7 +256,7 @@ const EditRegisterPage = () => {
                         empresa: registerData.empresa || "",
                         loja: registerData.loja || "",
                         docSap: registerData.docSap || "",
-                        cnpj: registerData.cnpj ? formatCNPJ(registerData.cnpj) : "", // Formata o CNPJ
+                        cnpj: registerData.cnpj ? formatCNPJ(registerData.cnpj) : "",
                         im: registerData.im || "",
                         municipio: registerData.municipio || "",
                         status_empresa: registerData.status_empresa || "",
@@ -235,6 +265,9 @@ const EditRegisterPage = () => {
                         faturamento: registerData.faturamento?.toString() || "",
                         base_calculo: registerData.base_calculo?.toString() || "",
                         aliquota: registerData.aliquota?.toString() || "",
+                        multa: registerData.multa?.toString() || "",
+                        juros: registerData.juros?.toString() || "",
+                        taxa: registerData.taxa?.toString() || "",
                         vl_issqn: registerData.vl_issqn?.toString() || "",
                         historico: registerData.historico || "",
                         status: registerData.status || "",
@@ -328,8 +361,7 @@ const EditRegisterPage = () => {
                                         value: register.cnpj,
                                         placeholder: "00.000.000/0000-00",
                                         required: true,
-                                        maxLength: 18, // 14 dígitos + 4 caracteres de formatação
-
+                                        maxLength: 18,
                                     },
                                     {
                                         name: "im",
@@ -406,12 +438,40 @@ const EditRegisterPage = () => {
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
+                                        name: "multa",
+                                        label: "MULTA",
+                                        type: "text",
+                                        value: register.multa,
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "juros",
+                                        label: "JUROS",
+                                        type: "text",
+                                        value: register.juros,
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "taxa",
+                                        label: "TAXA",
+                                        type: "text",
+                                        value: register.taxa,
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
                                         name: "vl_issqn",
                                         label: "VL. ISSQN",
                                         type: "text",
                                         value: register.vl_issqn,
                                         placeholder: "0,00",
                                         mask: "currency",
+                                        readOnly: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
