@@ -1,3 +1,5 @@
+"use client";
+
 import { Account, Models, Teams, AppwriteException } from "appwrite";
 import client from "../config/appwrite.config";
 
@@ -27,6 +29,8 @@ class AuthService {
       );
     } catch (error) {
       const appwriteError = error as AppwriteException;
+      console.error("Erro detalhado do Appwrite:", appwriteError); // Adicione esta linha
+
       let message = "Erro ao fazer login";
       
       if (appwriteError.type === 'user_invalid_credentials') {
@@ -78,7 +82,7 @@ class AuthService {
     return AuthService.account.deleteSession("current");
   }
 
-  public async getAccount(): Promise<Models.User<Models.Preferences> & { teamId?: string }> {
+  public async getAccount() {
     const account = await AuthService.account.get();
     const teamId = await this.getFirstUserTeamId();
     return { ...account, teamId };

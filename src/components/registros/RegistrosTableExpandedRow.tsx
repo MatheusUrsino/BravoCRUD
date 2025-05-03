@@ -7,6 +7,29 @@ interface RegistrosTableExpandedRowProps {
   userNames: Record<string, string>;
 }
 
+const adjustTimezone = (dateString: string): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    return new Date(date.getTime() + (date.getTimezoneOffset() * 60000)).toISOString();
+  } catch {
+    return '';
+  }
+};
+
+const formatDateBr = (dateString: string): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return '';
+  }
+};
+
 // Função auxiliar para converter para número e tratar como centavos
 const parseToCents = (value: number | string | undefined): number | null => {
   if (value === undefined || value === null || value === '') return null;
@@ -71,7 +94,7 @@ export const RegistrosTableExpandedRow = ({
                 <FiCalendar /> Outras Informações
               </h4>
               <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Data Emissão:</span> {data.data_emissao ? formatDate(data.data_emissao) : '-'}</p>
+                <p><span className="font-medium">Data Emissão:</span> {data.data_emissao ? formatDateBr(adjustTimezone(data.data_emissao)) : ''}</p>
                 <p><span className="font-medium">Quantidade:</span> {data.qtd || '-'}</p>
                 <p><span className="font-medium">Histórico:</span> {data.historico || '-'}</p>
                 <p className="flex items-center gap-1">

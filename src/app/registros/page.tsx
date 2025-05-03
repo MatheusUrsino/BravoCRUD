@@ -115,7 +115,22 @@ export default function RegistrosPage() {
       'Status': doc.status || '',
       'Vencimento ISS': doc.vcto_guias_iss_proprio ? formatDateBr(adjustTimezone(doc.vcto_guias_iss_proprio)) : '',
       'Data Emissão': doc.data_emissao ? formatDateBr(adjustTimezone(doc.data_emissao)) : '',
-      'Responsável': userNames[doc.responsavel] || doc.responsavel || '-'
+      'Responsável': userNames[doc.responsavel] || doc.responsavel || '-',
+      'Documento SAP': doc.docSap || '',
+      'Inscrição Municipal': doc.im || '',
+      'Status Empresa': doc.status_empresa || '',
+      'Estado': doc.estado || '',
+      'Faturamento': doc.faturamento || '',
+      'Base de Cálculo': doc.base_calculo || '',
+      'Alíquota': doc.aliquota || '',
+      'Multa': doc.multa || '',
+      'Juros': doc.juros || '',
+      'Taxa': doc.taxa || '',
+      'Valor ISSQN': doc.vl_issqn || '',
+      'Histórico': doc.historico || '',
+      'Ocorrência': doc.ocorrencia || '',
+      'Quantidade': doc.qtd || '',
+      'Time ID': doc.teamId || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -136,7 +151,7 @@ export default function RegistrosPage() {
       const docs = await registersService.getDocumentsByTeam(teamId);
       setDocuments(docs.documents || []);
 
-      const uniqueResponsaveis = [...new Set(docs.documents.map(doc => doc.responsavel).filter(Boolean))];
+      const uniqueResponsaveis = [...new Set(docs.documents.map(doc => doc.responsavel).filter(Boolean)),];
       if (uniqueResponsaveis.length > 0) {
         await fetchUserNames(uniqueResponsaveis);
       }
@@ -273,51 +288,47 @@ export default function RegistrosPage() {
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <RegistrosFilters
-          filters={filters}
-          newFilterField={newFilterField}
-          newFilterValue={newFilterValue}
-          newFilterType={newFilterType}
-          dateFilterValue={dateFilterValue}
-          availableFields={availableFields}
-          onAddFilter={addFilter}
-          onRemoveFilter={removeFilter}
-          onFieldChange={(value) => {
-            setNewFilterField(value);
-            const fieldType = availableFields.find(f => f.value === value)?.type || "text";
-            setNewFilterType(fieldType);
-            if (fieldType === "date") {
-              setDatePickerOpen(true);
-            } else {
-              setDatePickerOpen(false);
-            }
-          }}
-          onValueChange={setNewFilterValue}
-          // No seu page.tsx, onde você usa o DatePicker
-          onDateChange={(date) => {
-            if (date) {
-              // Adiciona 1 dia à data
-              date.setDate(date.getDate() + 1);
-
-              // Formata como YYYY-MM-DD (sem informações de fuso horário)
-              const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-              setDateFilterValue(formatted);
-            } else {
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <RegistrosFilters
+            filters={filters}
+            newFilterField={newFilterField}
+            newFilterValue={newFilterValue}
+            newFilterType={newFilterType}
+            dateFilterValue={dateFilterValue}
+            availableFields={availableFields}
+            onAddFilter={addFilter}
+            onRemoveFilter={removeFilter}
+            onFieldChange={(value) => {
+              setNewFilterField(value);
+              const fieldType = availableFields.find(f => f.value === value)?.type || "text";
+              setNewFilterType(fieldType);
+              if (fieldType === "date") {
+                setDatePickerOpen(true);
+              } else {
+                setDatePickerOpen(false);
+              }
+            }}
+            onValueChange={setNewFilterValue}
+            onDateChange={(date) => {
+              if (date) {
+                date.setDate(date.getDate() + 1);
+                const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                setDateFilterValue(formatted);
+              } else {
+                setDateFilterValue("");
+              }
+            }}
+            onClearValue={() => {
+              setNewFilterValue("");
               setDateFilterValue("");
-            }
+              setDatePickerOpen(false);
+            }}
+            datePickerOpen={datePickerOpen}
+            setDatePickerOpen={setDatePickerOpen}
+          />
+        </div>
 
-          }}
-
-          onClearValue={() => {
-            setNewFilterValue("");
-            setDateFilterValue("");
-            setDatePickerOpen(false);
-          }}
-          datePickerOpen={datePickerOpen}
-          setDatePickerOpen={setDatePickerOpen}
-        />
-
-        <div className="mb-4 flex justify-between items-center">
+        <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div className="text-sm text-gray-600">
             {filteredDocuments.length} {filteredDocuments.length === 1 ? 'registro' : 'registros'} encontrados
           </div>
@@ -331,18 +342,20 @@ export default function RegistrosPage() {
           )}
         </div>
 
-        <RegistrosTable
-          filteredDocuments={filteredDocuments}
-          filters={filters}
-          sortConfig={sortConfig}
-          expandedRow={expandedRow}
-          userNames={userNames}
-          onRequestSort={requestSort}
-          onExpandRow={(id) => setExpandedRow(expandedRow === id ? null : id)}
-          onSelectForDeletion={handleSelectForDeletion}
-          onClearFilters={() => setFilters([])}
-          onDownloadPdf={downloadPdf}
-        />
+        <div className="overflow-x-auto">
+          <RegistrosTable
+            filteredDocuments={filteredDocuments}
+            filters={filters}
+            sortConfig={sortConfig}
+            expandedRow={expandedRow}
+            userNames={userNames}
+            onRequestSort={requestSort}
+            onExpandRow={(id) => setExpandedRow(expandedRow === id ? null : id)}
+            onSelectForDeletion={handleSelectForDeletion}
+            onClearFilters={() => setFilters([])}
+            onDownloadPdf={downloadPdf}
+          />
+        </div>
       </main>
 
       <DeleteConfirmationModal

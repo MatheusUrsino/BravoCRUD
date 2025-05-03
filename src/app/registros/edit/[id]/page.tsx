@@ -69,26 +69,68 @@ const EditRegisterPage = () => {
         pdf_anexo2: null
     });
 
-    const calculateVlIssqn = () => {
-        const base = parseFloat(register.base_calculo?.replace(",", ".") || "0");
-        const aliquota = parseFloat(register.aliquota?.replace(",", ".") || "0");
-        const multa = parseFloat(register.multa?.replace(",", ".") || "0");
-        const juros = parseFloat(register.juros?.replace(",", ".") || "0");
-        const taxa = parseFloat(register.taxa?.replace(",", ".") || "0");
+    // Modal de confirmação
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [fileToRemove, setFileToRemove] = useState<"pdf_anexo1" | "pdf_anexo2" | null>(null);
 
-        const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
-        return vlIssqn.toFixed(2).replace(".", ",");
+    // Função para formatar valores monetários
+    const formatCurrency = (value: number) => {
+        return value.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     };
 
+    // Função robusta para converter valores do formulário para número
+    const parseFormValue = (value: string | null): number => {
+        if (!value) return 0;
+        return parseFloat(value
+            .replace(/\./g, '')
+            .replace(',', '.')
+            .replace('%', '')
+            .replace(/[^\d.-]/g, '')
+        ) || 0;
+    };
+
+    // Cálculo completo do ISSQN
+    const calculateVlIssqn = (currentValues: Partial<typeof register> = register) => {
+        const base = parseFormValue(currentValues.base_calculo || '0');
+        const aliquota = parseFormValue(currentValues.aliquota || '0');
+        const multa = parseFormValue(currentValues.multa || '0');
+        const juros = parseFormValue(currentValues.juros || '0');
+        const taxa = parseFormValue(currentValues.taxa || '0');
+
+        const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
+
+        return {
+            raw: vlIssqn,
+            formatted: formatCurrency(vlIssqn)
+        };
+    };
+
+    // Atualiza o cálculo sempre que os campos relevantes mudam
     useEffect(() => {
-        if (register.base_calculo && register.aliquota) {
-            const calculatedVlIssqn = calculateVlIssqn();
+        const calculatedVlIssqn = calculateVlIssqn();
+        setRegister(prev => ({
+            ...prev,
+            vl_issqn: calculatedVlIssqn.formatted
+        }));
+    }, [register.base_calculo, register.aliquota, register.multa, register.juros, register.taxa]);
+
+    // Autocompletar data de emissão igual ao AddPage
+    useEffect(() => {
+        if (!register.data_emissao) {
+            const now = new Date();
+            // Ajusta para o fuso local e pega YYYY-MM-DD
+            const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                .toISOString()
+                .split('T')[0];
             setRegister(prev => ({
                 ...prev,
-                vl_issqn: calculatedVlIssqn
+                data_emissao: localISO
             }));
         }
-    }, [register.base_calculo, register.aliquota, register.multa, register.juros, register.taxa]);
+    }, [register.data_emissao]);
 
     const handleSubmit = async (formData: FormData) => {
         if (!id) {
@@ -99,6 +141,7 @@ const EditRegisterPage = () => {
         setLoading(true);
 
         try {
+            // Validação de campos obrigatórios
             const requiredFields = [
                 "empresa", "loja", "docSap", "cnpj", "im", "municipio",
                 "status_empresa", "estado", "vcto_guias_iss_proprio", "data_emissao"
@@ -110,6 +153,19 @@ const EditRegisterPage = () => {
                 }
             }
 
+            // Cálculo FINAL com os valores mais recentes
+            const finalCalculation = calculateVlIssqn({
+                ...register,
+                base_calculo: formData.get('base_calculo')?.toString() || '',
+                aliquota: formData.get('aliquota')?.toString() || '',
+                multa: formData.get('multa')?.toString() || '',
+                juros: formData.get('juros')?.toString() || '',
+                taxa: formData.get('taxa')?.toString() || '',
+                faturamento: formData.get('faturamento')?.toString() || '',
+                vl_issqn: ''
+            });
+
+            // Obter dados da conta
             const account = await authService.getAccount();
             const teamId = account.teamId;
 
@@ -117,6 +173,7 @@ const EditRegisterPage = () => {
                 throw new Error("Usuário não está associado a nenhum time");
             }
 
+            // Processamento de arquivos
             const pdfAnexo1 = formData.get("pdf_anexo1");
             const pdfAnexo2 = formData.get("pdf_anexo2");
             const hasFiles = (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) ||
@@ -149,35 +206,32 @@ const EditRegisterPage = () => {
                 }
             }
 
+            // Formatar data de vencimento
+            const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
+            const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
+
+            // Criar payload com tipos corretos
             const payload = {
-                empresa: Number(formData.get("empresa")),
-                loja: formData.get("loja")?.toString() || '',
+                empresa: formData.get("empresa")?.toString() || '',
+                loja: Number(formData.get("loja")),
                 docSap: formData.get("docSap")?.toString() || '',
                 cnpj: formData.get("cnpj")?.toString().replace(/\D/g, '') || '',
                 im: formData.get("im")?.toString() || '',
                 municipio: formData.get("municipio")?.toString() || '',
                 status_empresa: formData.get("status_empresa")?.toString() || '',
                 estado: formData.get("estado")?.toString().toUpperCase() || '',
-                faturamento: formData.get("faturamento") ?
-                    parseFloat(formData.get("faturamento")?.toString().replace(",", ".") || '0') : null,
-                base_calculo: formData.get("base_calculo") ?
-                    parseFloat(formData.get("base_calculo")?.toString().replace(",", ".") || '0') : null,
-                aliquota: formData.get("aliquota") ?
-                    parseFloat(formData.get("aliquota")?.toString().replace(",", ".") || '0') : null,
-                multa: formData.get("multa") ?
-                    parseFloat(formData.get("multa")?.toString().replace(",", ".") || '0') : null,
-                juros: formData.get("juros") ?
-                    parseFloat(formData.get("juros")?.toString().replace(",", ".") || '0') : null,
-                taxa: formData.get("taxa") ?
-                    parseFloat(formData.get("taxa")?.toString().replace(",", ".") || '0') : null,
-                vl_issqn: formData.get("vl_issqn") ?
-                    parseFloat(formData.get("vl_issqn")?.toString().replace(",", ".") || '0') : null,
+                faturamento: parseFormValue(formData.get("faturamento")?.toString() || ''),
+                base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || ''),
+                aliquota: parseFormValue(formData.get("aliquota")?.toString() || ''),
+                multa: parseFormValue(formData.get("multa")?.toString() || ''),
+                juros: parseFormValue(formData.get("juros")?.toString() || ''),
+                taxa: parseFormValue(formData.get("taxa")?.toString() || ''),
+                vl_issqn: finalCalculation.raw, // Usa o valor calculado diretamente
                 historico: formData.get("historico")?.toString() || null,
                 status: formData.get("status")?.toString() || null,
-                vcto_guias_iss_proprio: new Date(formData.get("vcto_guias_iss_proprio")?.toString() || '').toISOString(),
+                vcto_guias_iss_proprio: formattedVctoDate,
                 data_emissao: new Date(formData.get("data_emissao")?.toString() || '').toISOString(),
-                qtd: formData.get("qtd") ?
-                    parseInt(formData.get("qtd")?.toString() || '0') : null,
+                qtd: formData.get("qtd") ? parseInt(formData.get("qtd")?.toString() || '0') : null,
                 responsavel: account.$id,
                 teamId: teamId,
                 ...fileIds
@@ -199,6 +253,9 @@ const EditRegisterPage = () => {
         try {
             const fileId = field === 'pdf_anexo1' ? register.pdf_anexo1_id : register.pdf_anexo2_id;
             if (!fileId) return;
+
+            // Remove do Appwrite Storage
+            await storage.deleteFile(bucketId, fileId);
 
             setCurrentFiles(prev => ({
                 ...prev,
@@ -251,9 +308,19 @@ const EditRegisterPage = () => {
                         };
                     }
 
+                    // Calcular vl_issqn inicial
+                    const initialVlIssqn = calculateVlIssqn({
+                        ...registerData,
+                        base_calculo: registerData.base_calculo?.toString() || '',
+                        aliquota: registerData.aliquota?.toString() || '',
+                        multa: registerData.multa?.toString() || '',
+                        juros: registerData.juros?.toString() || '',
+                        taxa: registerData.taxa?.toString() || ''
+                    });
+
                     setRegister({
                         ...registerData,
-                        empresa: registerData.empresa || "",
+                        empresa: registerData.empresa?.toString() || "",
                         loja: registerData.loja || "",
                         docSap: registerData.docSap || "",
                         cnpj: registerData.cnpj ? formatCNPJ(registerData.cnpj) : "",
@@ -268,7 +335,7 @@ const EditRegisterPage = () => {
                         multa: registerData.multa?.toString() || "",
                         juros: registerData.juros?.toString() || "",
                         taxa: registerData.taxa?.toString() || "",
-                        vl_issqn: registerData.vl_issqn?.toString() || "",
+                        vl_issqn: initialVlIssqn.formatted,
                         historico: registerData.historico || "",
                         status: registerData.status || "",
                         vcto_guias_iss_proprio: registerData.vcto_guias_iss_proprio?.split('T')[0] || "",
@@ -288,42 +355,41 @@ const EditRegisterPage = () => {
         };
 
         fetchUserAndRegister();
-    }, [id, authService, registersService, bucketId, storage]);
+    }, [id]);
 
     if (registerLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-2">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-lg font-medium text-gray-700">Carregando registro...</p>
+                    <p className="mt-4 text-base sm:text-lg font-medium text-gray-700">Carregando registro...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-2 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl mb-4">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
                         Editar Registro
                     </h1>
-                    <p className="text-lg text-gray-600">
+                    <p className="text-base sm:text-lg text-gray-600">
                         Atualize os campos necessários para o registro #{id}
                     </p>
                 </div>
-
+    
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-                    <div className="p-6 sm:p-8">
-                        <div className="border-b border-gray-200 pb-6 mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">
+                    <div className="p-4 sm:p-8">
+                        <div className="border-b border-gray-200 pb-4 mb-4">
+                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
                                 Edição de Registro
                             </h2>
                             <p className="mt-1 text-sm text-gray-500">
                                 Atualize as informações conforme necessário
                             </p>
                         </div>
-
                         {register ? (
                             <Form
                                 loading={loading}
@@ -518,7 +584,7 @@ const EditRegisterPage = () => {
                                     },
                                     {
                                         name: "pdf_anexo1",
-                                        label: "PDF Anexo 1",
+                                        label: "Guia de recolhimento",
                                         type: "file",
                                         accept: "application/pdf",
                                         description: currentFiles.pdf_anexo1 ? (
@@ -536,7 +602,8 @@ const EditRegisterPage = () => {
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        handleRemoveFile('pdf_anexo1');
+                                                        setFileToRemove('pdf_anexo1');
+                                                        setShowConfirmModal(true);
                                                     }}
                                                     className="text-sm text-red-600 hover:text-red-800 ml-2"
                                                 >
@@ -548,7 +615,7 @@ const EditRegisterPage = () => {
                                     },
                                     {
                                         name: "pdf_anexo2",
-                                        label: "PDF Anexo 2",
+                                        label: "Protocolo",
                                         type: "file",
                                         accept: "application/pdf",
                                         description: currentFiles.pdf_anexo2 ? (
@@ -566,7 +633,8 @@ const EditRegisterPage = () => {
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        handleRemoveFile('pdf_anexo2');
+                                                        setFileToRemove('pdf_anexo2');
+                                                        setShowConfirmModal(true);
                                                     }}
                                                     className="text-sm text-red-600 hover:text-red-800 ml-2"
                                                 >
@@ -588,7 +656,7 @@ const EditRegisterPage = () => {
                                 </div>
                                 <button
                                     onClick={() => router.push("/registros")}
-                                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto"
                                 >
                                     Voltar para a lista
                                 </button>
@@ -597,6 +665,36 @@ const EditRegisterPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de confirmação */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-semibold mb-4">Remover arquivo</h3>
+                        <p className="mb-6">Tem certeza que deseja remover este arquivo? Esta ação não pode ser desfeita.</p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                onClick={() => setShowConfirmModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
+                                onClick={async () => {
+                                    if (fileToRemove) {
+                                        await handleRemoveFile(fileToRemove);
+                                    }
+                                    setShowConfirmModal(false);
+                                    setFileToRemove(null);
+                                }}
+                            >
+                                Remover
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

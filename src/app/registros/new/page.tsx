@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
+const statusEmpresaOptions = [
+    { value: "ATIVA", label: "Ativa" },
+    { value: "INATIVA", label: "Inativa" },
+    { value: "SUSPENSA", label: "Suspensa" }
+];
+
+const statusOptions = [
+    { value: "PENDENTE", label: "Pendente" },
+    { value: "CONCLUIDO", label: "Concluído" }
+];
+
 const AddRegisterPage = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [user, setUser] = useState<any>(null);
@@ -15,69 +26,55 @@ const AddRegisterPage = () => {
 
     const [formValues, setFormValues] = useState({
         base_calculo: "",
+        faturamento: "",
         aliquota: "",
         multa: "",
         juros: "",
-        taxa: ""
+        taxa: "",
+        vl_issqn: ""
     });
 
-    const calculateVlIssqn = () => {
-        // Converte os valores para formato numérico adequado
-        const base = parseFloat(
-            formValues.base_calculo
-                ?.replace(/\./g, '')
-                .replace(',', '.') || "0"
-        );
+    // Função para formatar valores monetários
+    const formatCurrency = (value: number) => {
+        return value.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
 
-        const aliquota = parseFloat(
-            formValues.aliquota
-                ?.replace('%', '')
-                .replace(',', '.') || "0"
-        );
+    // Função robusta para converter valores do formulário para número
+    const parseFormValue = (value: string | null): number => {
+        if (!value) return 0;
+        return parseFloat(value
+            .replace(/\./g, '')
+            .replace(',', '.')
+            .replace('%', '')
+            .replace(/[^\d.-]/g, '')
+        ) || 0;
+    };
 
-        const multa = parseFloat(
-            formValues.multa
-                ?.replace(/\./g, '')
-                .replace(',', '.') || "0"
-        );
+    // Cálculo completo do ISSQN
+    const calculateVlIssqn = (currentFormValues = formValues) => {
+        const base = parseFormValue(currentFormValues.base_calculo);
+        const aliquota = parseFormValue(currentFormValues.aliquota);
+        const multa = parseFormValue(currentFormValues.multa);
+        const juros = parseFormValue(currentFormValues.juros);
+        const taxa = parseFormValue(currentFormValues.taxa);
 
-        const juros = parseFloat(
-            formValues.juros
-                ?.replace(/\./g, '')
-                .replace(',', '.') || "0"
-        );
-
-        const taxa = parseFloat(
-            formValues.taxa
-                ?.replace(/\./g, '')
-                .replace(',', '.') || "0"
-        );
-
-        // Realiza o cálculo completo
         const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
 
         return {
-            raw: vlIssqn, // Valor numérico para o payload
-            formatted: vlIssqn.toFixed(2).replace('.', ',') // Valor formatado para exibição
+            raw: vlIssqn,
+            formatted: formatCurrency(vlIssqn)
         };
     };
 
     const [autoFields, setAutoFields] = useState({
         responsavelNome: '',
         responsavelId: '',
+        vl_issqn: calculateVlIssqn().formatted,
         data_emissao: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-        vl_issqn: ((parseFloat(formValues.base_calculo || "0") * parseFloat(formValues.aliquota || "0") / 100) + parseFloat(formValues.multa || "0") + parseFloat(formValues.juros || "0") + parseFloat(formValues.taxa || "0")).toFixed(2).replace('.', ',')
     });
-
-
-
-
-    const handleFieldChange = (name: string, value: string) => {
-        setFormValues(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
 
     const statusEmpresaOptions = [
         { value: "Ativa", label: "Ativa" },
@@ -90,6 +87,25 @@ const AddRegisterPage = () => {
         { value: "Pendente", label: "Pendente" },
     ];
 
+
+    const handleFieldChange = (name: string, value: string) => {
+        const newFormValues = {
+            ...formValues,
+            [name]: value
+        };
+
+        setFormValues(newFormValues);
+
+        // Recalcula imediatamente quando campos relevantes mudam
+        if (['base_calculo', 'aliquota', 'multa', 'juros', 'taxa'].includes(name)) {
+            setAutoFields(prev => ({
+                ...prev,
+                vl_issqn: calculateVlIssqn(newFormValues).formatted
+            }));
+        }
+    };
+
+    // Busca os dados do usuário ao carregar o componente
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -98,7 +114,8 @@ const AddRegisterPage = () => {
                 setAutoFields(prev => ({
                     ...prev,
                     responsavelNome: data.name || data.email,
-                    responsavelId: data.$id
+                    responsavelId: data.$id,
+                    vl_issqn: calculateVlIssqn().formatted
                 }));
             } catch (error) {
                 toast.error("Falha ao carregar dados do usuário");
@@ -112,6 +129,7 @@ const AddRegisterPage = () => {
         setLoading(true);
 
         try {
+            // Validação de campos obrigatórios
             const requiredFields = [
                 "empresa", "loja", "docSap", "cnpj", "im", "municipio",
                 "status_empresa", "estado", "vcto_guias_iss_proprio"
@@ -123,6 +141,28 @@ const AddRegisterPage = () => {
                 }
             }
 
+            // Cálculo FINAL com os valores mais recentes
+            const finalCalculation = calculateVlIssqn({
+                base_calculo: formData.get('base_calculo')?.toString() || '',
+                aliquota: formData.get('aliquota')?.toString() || '',
+                multa: formData.get('multa')?.toString() || '',
+                juros: formData.get('juros')?.toString() || '',
+                taxa: formData.get('taxa')?.toString() || '',
+                faturamento: '',
+                vl_issqn: ''
+            });
+
+            // DEBUG: Verificar cálculo
+            console.log('Valores calculados:', {
+                base: parseFormValue(formData.get('base_calculo')?.toString() || ''),
+                aliquota: parseFormValue(formData.get('aliquota')?.toString() || ''),
+                multa: parseFormValue(formData.get('multa')?.toString() || ''),
+                juros: parseFormValue(formData.get('juros')?.toString() || ''),
+                taxa: parseFormValue(formData.get('taxa')?.toString() || ''),
+                vl_issqn: finalCalculation.raw
+            });
+
+            // Obter dados da conta
             const account = await authService.getAccount();
             const teamId = account.teamId;
 
@@ -130,48 +170,43 @@ const AddRegisterPage = () => {
                 throw new Error("Usuário não está associado a nenhum time");
             }
 
+            // Formatar data de vencimento
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
             const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
 
-            // Calcula o valor final do ISSQN
-            const issqnValue = calculateVlIssqn();
-
+            // Criar payload com tipos corretos
             const payload = {
-                empresa: Number(formData.get("empresa")),
-                loja: formData.get("loja")?.toString() || '',
+                empresa: formData.get("empresa")?.toString() || '',
+                loja: Number(formData.get("loja")),
                 docSap: formData.get("docSap")?.toString() || '',
                 cnpj: formData.get("cnpj")?.toString().replace(/\D/g, '') || '',
                 im: formData.get("im")?.toString() || '',
                 municipio: formData.get("municipio")?.toString() || '',
                 status_empresa: formData.get("status_empresa")?.toString() || '',
                 estado: formData.get("estado")?.toString().toUpperCase() || '',
-                faturamento: formData.get("faturamento") ?
-                    parseFloat(formData.get("faturamento")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
-                base_calculo: formData.get("base_calculo") ?
-                    parseFloat(formData.get("base_calculo")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
-                aliquota: formData.get("aliquota") ?
-                    parseFloat(formData.get("aliquota")?.toString().replace('%', '').replace(',', '.') || '0') : null,
-                multa: formData.get("multa") ?
-                    parseFloat(formData.get("multa")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
-                juros: formData.get("juros") ?
-                    parseFloat(formData.get("juros")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
-                taxa: formData.get("taxa") ?
-                    parseFloat(formData.get("taxa")?.toString().replace(/\./g, '').replace(',', '.') || '0') : null,
-                vl_issqn: formData.get("vl_issqn") ?
-                    parseFloat(autoFields.vl_issqn?.toString().replace(/\./g, '').replace(',', '.') || '0') : null, // Usa o valor numérico calculado
+                faturamento: parseFormValue(formData.get("faturamento")?.toString() || ''),
+                base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || ''),
+                aliquota: parseFormValue(formData.get("aliquota")?.toString() || ''),
+                multa: parseFormValue(formData.get("multa")?.toString() || ''),
+                juros: parseFormValue(formData.get("juros")?.toString() || ''),
+                taxa: parseFormValue(formData.get("taxa")?.toString() || ''),
+                vl_issqn: finalCalculation.raw, // Usa o valor calculado diretamente
                 historico: formData.get("historico")?.toString() || null,
                 status: formData.get("status")?.toString() || null,
                 ocorrencia: formData.get("ocorrencia")?.toString() || null,
                 vcto_guias_iss_proprio: formattedVctoDate,
                 data_emissao: new Date(autoFields.data_emissao).toISOString(),
-                qtd: formData.get("qtd") ?
-                    parseInt(formData.get("qtd")?.toString() || '0') : null,
+                qtd: formData.get("qtd") ? parseInt(formData.get("qtd")?.toString() || '0') : null,
                 responsavel: autoFields.responsavelId,
                 teamId: teamId
             };
 
+            // DEBUG: Verificar payload antes do envio
+            console.log('Payload completo:', payload);
+
             const registerResponse = await registerService.AddRegister(payload);
 
+            // Processamento de arquivos (se houver)
             const pdfAnexo1 = formData.get("pdf_anexo1");
             const pdfAnexo2 = formData.get("pdf_anexo2");
             const hasFiles = (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) ||
@@ -199,7 +234,6 @@ const AddRegisterPage = () => {
                     });
 
                     await registerService.update(registerResponse.$id, {
-                        ...payload,
                         ...fileIds
                     });
                 }
@@ -210,238 +244,237 @@ const AddRegisterPage = () => {
 
         } catch (err: any) {
             toast.error(err.message || "Ocorreu um erro ao criar o registro");
-            console.error(err);
+            console.error("Erro no submit:", err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-2 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl mb-4">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
                         Novo Registro
                     </h1>
-                    <p className="text-lg text-gray-600">
+                    <p className="text-base sm:text-lg text-gray-600">
                         Preencha todos os campos obrigatórios para criar um novo registro
                     </p>
                 </div>
 
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-                    <div className="p-6 sm:p-8">
-                        <div className="border-b border-gray-200 pb-6 mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">
+                    <div className="p-4 sm:p-8">
+                        <div className="border-b border-gray-200 pb-4 mb-4">
+                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
                                 Informações Básicas
                             </h2>
                             <p className="mt-1 text-sm text-gray-500">
                                 Dados essenciais para identificação do registro
                             </p>
                         </div>
-
                         <Form
                             loading={loading}
                             onSubmit={handleSubmit}
-                            fields={[
-                                {
-                                    name: "empresa",
-                                    label: "EMPRESA",
-                                    type: "text",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "loja",
-                                    label: "LOJA",
-                                    type: "text",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "docSap",
-                                    label: "DOC SAP",
-                                    type: "text",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "cnpj",
-                                    label: "CNPJ",
-                                    type: "text",
-                                    mask: "cnpj",
-                                    placeholder: "00.000.000/0000-00",
-                                    required: true,
-                                    maxLength: 18,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "im",
-                                    label: "I.M",
-                                    type: "text",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "municipio",
-                                    label: "Município",
-                                    type: "text",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-2"
-                                },
-                                {
-                                    name: "status_empresa",
-                                    label: "STATUS EMPRESA",
-                                    type: "select",
-                                    options: [
-                                        { value: "", label: "Selecione o status da empresa" },
-                                        ...statusEmpresaOptions
-                                    ],
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "estado",
-                                    label: "Estado (UF)",
-                                    type: "text",
-                                    maxLength: 2,
-                                    placeholder: "Ex: SP",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "faturamento",
-                                    label: "FATURAMENTO",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "base_calculo",
-                                    label: "BASE DE CALCULO",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    onChange: (event) => handleFieldChange("base_calculo", event.target.value),
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "aliquota",
-                                    label: "ALÍQUOTA",
-                                    type: "text",
-                                    placeholder: "0,00%",
-                                    mask: "percentage",
-                                    onChange: (event) => handleFieldChange("aliquota", event.target.value),
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "multa",
-                                    label: "MULTA",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    onChange: (event) => handleFieldChange("multa", event.target.value),
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "juros",
-                                    label: "JUROS",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    onChange: (event) => handleFieldChange("juros", event.target.value),
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "taxa",
-                                    label: "TAXA",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    onChange: (event) => handleFieldChange("taxa", event.target.value),
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "vl_issqn",
-                                    label: "VL. ISSQN",
-                                    type: "text",
-                                    placeholder: "0,00",
-                                    mask: "currency",
-                                    value: autoFields.vl_issqn,
-                                    readOnly: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "historico",
-                                    label: "HISTÓRICO",
-                                    type: "textarea",
-                                    containerClass: "col-span-2 sm:col-span-2"
-                                },
-                                {
-                                    name: "status",
-                                    label: "STATUS",
-                                    type: "select",
-                                    options: [
-                                        { value: "", label: "Selecione o status do registro" },
-                                        ...statusOptions
-                                    ],
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "ocorrencia",
-                                    label: "OCORRÊNCIA",
-                                    type: "text",
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "vcto_guias_iss_proprio",
-                                    label: "VCTO GUIAS ISS PRÓPRIO",
-                                    type: "date",
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "responsavel_nome",
-                                    label: "RESPONSÁVEL",
-                                    type: "text",
-                                    value: autoFields.responsavelNome,
-                                    readOnly: true,
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "data_emissao_display",
-                                    label: "DATA - EMISSÃO",
-                                    type: "date",
-                                    value: autoFields.data_emissao.split('T')[0],
-                                    readOnly: true,
-                                    required: true,
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "qtd",
-                                    label: "QTD",
-                                    type: "text",
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "pdf_anexo1",
-                                    label: "PDF Anexo 1",
-                                    type: "file",
-                                    accept: "application/pdf",
-                                    description: "Nenhum arquivo enviado",
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                },
-                                {
-                                    name: "pdf_anexo2",
-                                    label: "PDF Anexo 2",
-                                    type: "file",
-                                    accept: "application/pdf",
-                                    description: "Nenhum arquivo enviado",
-                                    containerClass: "col-span-1 sm:col-span-1"
-                                }
-                            ]}
+                                fields={[
+                                    {
+                                        name: "empresa",
+                                        label: "EMPRESA",
+                                        type: "text",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "loja",
+                                        label: "LOJA",
+                                        type: "text",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "docSap",
+                                        label: "DOC SAP",
+                                        type: "text",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "cnpj",
+                                        label: "CNPJ",
+                                        type: "text",
+                                        mask: "cnpj",
+                                        placeholder: "00.000.000/0000-00",
+                                        required: true,
+                                        maxLength: 18,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "im",
+                                        label: "I.M",
+                                        type: "text",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "municipio",
+                                        label: "Município",
+                                        type: "text",
+                                        required: true,
+                                        containerClass: "col-span-2 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "status_empresa",
+                                        label: "STATUS EMPRESA",
+                                        type: "select",
+                                        options: [
+                                            { value: "", label: "Selecione o status da empresa" },
+                                            ...statusEmpresaOptions
+                                        ],
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "estado",
+                                        label: "Estado (UF)",
+                                        type: "text",
+                                        maxLength: 2,
+                                        placeholder: "Ex: SP",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "faturamento",
+                                        label: "FATURAMENTO",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        onChange: (event) => handleFieldChange("faturamento", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "base_calculo",
+                                        label: "BASE DE CALCULO",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        onChange: (event) => handleFieldChange("base_calculo", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "aliquota",
+                                        label: "ALÍQUOTA",
+                                        type: "text",
+                                        placeholder: "0,00%",
+                                        mask: "percentage",
+                                        onChange: (event) => handleFieldChange("aliquota", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "multa",
+                                        label: "MULTA",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        onChange: (event) => handleFieldChange("multa", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "juros",
+                                        label: "JUROS",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        onChange: (event) => handleFieldChange("juros", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "taxa",
+                                        label: "TAXA",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        mask: "currency",
+                                        onChange: (event) => handleFieldChange("taxa", event.target.value),
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "vl_issqn",
+                                        label: "VL. ISSQN",
+                                        type: "text",
+                                        placeholder: "0,00",
+                                        value: autoFields.vl_issqn,
+                                        readOnly: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "historico",
+                                        label: "HISTÓRICO",
+                                        type: "textarea",
+                                        containerClass: "col-span-2"
+                                    },
+                                    {
+                                        name: "status",
+                                        label: "STATUS",
+                                        type: "select",
+                                        options: [
+                                            { value: "", label: "Selecione o status do registro" },
+                                            ...statusOptions
+                                        ],
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "ocorrencia",
+                                        label: "OCORRÊNCIA",
+                                        type: "text",
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "vcto_guias_iss_proprio",
+                                        label: "VCTO GUIAS ISS PRÓPRIO",
+                                        type: "date",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "responsavel_nome",
+                                        label: "RESPONSÁVEL",
+                                        type: "text",
+                                        value: autoFields.responsavelNome,
+                                        readOnly: true,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "data_emissao_display",
+                                        label: "DATA - EMISSÃO",
+                                        type: "date",
+                                        value: autoFields.data_emissao.split('T')[0],
+                                        readOnly: true,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "qtd",
+                                        label: "QTD",
+                                        type: "text",
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "pdf_anexo1",
+                                        label: "Guia de Recolhimento",
+                                        type: "file",
+                                        accept: "application/pdf",
+                                        description: "Nenhum arquivo enviado",
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    },
+                                    {
+                                        name: "pdf_anexo2",
+                                        label: "Protocolo",
+                                        type: "file",
+                                        accept: "application/pdf",
+                                        description: "Nenhum arquivo enviado",
+                                        containerClass: "col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1"
+                                    }
+                                ]}
                             btnTitle="Adicionar Registro"
                             btnClass="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200"
                             gridClass="grid grid-cols-1 sm:grid-cols-2 gap-6"

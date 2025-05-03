@@ -21,7 +21,7 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
     const [selectedMonth, setSelectedMonth] = React.useState<number | null>(null);
     const [selectedYear, setSelectedYear] = React.useState<number | null>(null);
 
-    const [currentMonth, setCurrentMonth] = React.useState(props.defaultMonth || new Date());
+    const [currentMonth, setCurrentMonth] = React.useState(props.defaultMonth || new Date() );
 
     return (
         <DayPicker
@@ -78,6 +78,7 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
                                 setSelectedYear(currentMonth.getFullYear());
                                 setCurrentMonth(new Date(currentMonth.getFullYear(), newMonth));
                             }}
+                            
                         >
                             {months.map((month, idx) => (
                                 <option key={month} value={idx}>

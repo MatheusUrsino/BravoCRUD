@@ -118,7 +118,7 @@ export function RegistrosFilters({
             return (
               <div
                 key={filter.id}
-                className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center gap-2"
+                className="bg-cyan-100 rounded-full px-3 py-1 text-sm flex items-center gap-2 transition-transform duration-300 hover:animate-wiggle"
               >
                 <span className="font-medium">{fieldLabel}:</span>
                 <span>{displayValue}</span>

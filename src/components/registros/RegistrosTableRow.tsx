@@ -115,7 +115,7 @@ export const RegistrosTableRow = ({
                     onDownloadPdf(data.pdf_anexo1_id!, `Anexo1_${data.empresa}.pdf`);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  title="Baixar Anexo 1"
+                  title="Baixar Guia de Recolhimento"
                 >
                   <FaFilePdf size={16} />
                 </button>
@@ -127,7 +127,7 @@ export const RegistrosTableRow = ({
                     onDownloadPdf(data.pdf_anexo2_id!, `Anexo2_${data.empresa}.pdf`);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  title="Baixar Anexo 2"
+                  title="Baixar protocolo"
                 >
                   <FaFilePdf size={16} />
                 </button>

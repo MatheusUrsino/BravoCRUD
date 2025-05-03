@@ -49,7 +49,7 @@ class RegistersService {
       ID.unique(),
       {
         ...data,
-        empresa: Number(data.empresa),
+        loja: Number(data.loja),
         responsavel: user.$id,
       },
       [
@@ -72,7 +72,7 @@ class RegistersService {
       docID,
       {
         ...data,
-        empresa: Number(data.empresa),
+        loja: Number(data.loja),
         responsavel: user.$id,
       }
     );
