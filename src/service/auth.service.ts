@@ -51,31 +51,12 @@ class AuthService {
     email: string; 
     password: string 
   }): Promise<Models.User<Models.Preferences>> {
-    try {
-      const { userId, name, email, password } = data;
-      
-      // Ordem correta dos parâmetros para o Appwrite:
-      // create(userId: string, email: string, password: string, name?: string)
-      return await AuthService.account.create(
-        userId.trim(),
-        email.trim().toLowerCase(),
-        password.trim(),
-        name.trim()
-      );
-    } catch (error) {
-      const appwriteError = error as AppwriteException;
-      let message = "Erro ao cadastrar";
-      
-      if (appwriteError.message?.includes('email')) {
-        message = "Email inválido ou já em uso";
-      } else if (appwriteError.message?.includes('password')) {
-        message = "Senha não atende aos requisitos mínimos";
-      } else if (appwriteError.message?.includes('user')) {
-        message = "ID de usuário já existe";
-      }
-      
-      throw new Error(message);
-    }
+    return await AuthService.account.create(
+      data.userId,
+      data.name,
+      data.email,
+      data.password,
+    );
   }
 
   public logout = () => {
@@ -100,6 +81,24 @@ class AuthService {
 
   public async getTeam(teamId: string) {
     return AuthService.teams.get(teamId);
+  }
+
+  public async getMemberships(teamId: string) {
+    try {
+      const memberships = await AuthService.teams.listMemberships(teamId);
+      return memberships.memberships;
+    } catch (error) {
+      console.error("Error getting team memberships:", error);
+      return undefined;
+    }
+  }
+
+  public async getUsers(userId: string) {
+    try {
+      return await AuthService.account.get(userId);
+    } catch (error) {
+      return {};
+    }
   }
 }
 

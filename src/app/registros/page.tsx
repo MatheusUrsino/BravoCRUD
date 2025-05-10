@@ -107,30 +107,29 @@ export default function RegistrosPage() {
   };
 
   const exportToExcel = () => {
-    const dataToExport = filteredDocuments.map(doc => ({
-      'Empresa': doc.empresa,
-      'Loja': doc.loja,
-      'CNPJ': doc.cnpj ? formatCNPJ(doc.cnpj) : '',
-      'Município': doc.municipio,
-      'Status': doc.status || '',
-      'Vencimento ISS': doc.vcto_guias_iss_proprio ? formatDateBr(adjustTimezone(doc.vcto_guias_iss_proprio)) : '',
-      'Data Emissão': doc.data_emissao ? formatDateBr(adjustTimezone(doc.data_emissao)) : '',
-      'Responsável': userNames[doc.responsavel] || doc.responsavel || '-',
-      'Documento SAP': doc.docSap || '',
-      'Inscrição Municipal': doc.im || '',
-      'Status Empresa': doc.status_empresa || '',
-      'Estado': doc.estado || '',
-      'Faturamento': doc.faturamento || '',
-      'Base de Cálculo': doc.base_calculo || '',
-      'Alíquota': doc.aliquota || '',
-      'Multa': doc.multa || '',
-      'Juros': doc.juros || '',
-      'Taxa': doc.taxa || '',
-      'Valor ISSQN': doc.vl_issqn || '',
-      'Histórico': doc.historico || '',
-      'Ocorrência': doc.ocorrencia || '',
-      'Quantidade': doc.qtd || '',
-      'Time ID': doc.teamId || ''
+    const dataToExport = filteredDocuments.map((item) => ({
+      Empresa: item.empresa || '',
+      Loja: item.loja || '',
+      DocumentoSAP: item.docSap || '',
+      CNPJ: item.cnpj || '',
+      InscricaoMunicipal: item.im || '',
+      Municipio: item.municipio || '',
+      StatusEmpresa: item.status_empresa || '',
+      Estado: item.estado || '',
+      Faturamento: item.faturamento ?? '',
+      BaseCalculo: item.base_calculo ?? '',
+      Aliquota: item.aliquota ?? '',
+      Multa: item.multa ?? '',
+      Juros: item.juros ?? '',
+      Taxa: item.taxa ?? '',
+      ValorISSQN: item.vl_issqn ?? '',
+      Historico: item.historico || '',
+      Status: item.status || '',
+      VencimentoISS: item.vcto_guias_iss_proprio || '',
+      DataEmissao: item.data_emissao || '',
+      Quantidade: item.qtd ?? '',
+      Responsavel: item.responsavel || '',
+      TeamId: item.teamId || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -140,6 +139,18 @@ export default function RegistrosPage() {
     const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(data, `registros_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
+
+  function parseDate(value: any) {
+    if (!value) return '';
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? '' : date.toISOString();
+  }
+
+  function parseFormValue(value: string) {
+    if (!value) return null;
+    const num = Number(value.toString().replace(',', '.'));
+    return isNaN(num) ? null : num;
+  }
 
   const fetchData = async () => {
     try {
@@ -279,12 +290,66 @@ export default function RegistrosPage() {
       </div>
     );
   }
+  // Função para importar registros do Excel
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      for (const row of json) {
+        const payload: any = {
+          empresa: row['Empresa'] || '',
+          loja: row['Loja'] ? Number(row['Loja']) : null,
+          docSap: row['DocumentoSAP'] || '',
+          cnpj: row['CNPJ']?.toString().replace(/\D/g, '') || '',
+          im: row['InscricaoMunicipal'] || '',
+          municipio: row['Municipio'] || '',
+          status_empresa: row['StatusEmpresa'] || '',
+          estado: row['Estado']?.toString().toUpperCase() || '',
+          faturamento: parseFormValue(row['Faturamento']?.toString() || ''),
+          base_calculo: parseFormValue(row['BaseCalculo']?.toString() || ''),
+          aliquota: parseFormValue(row['Aliquota']?.toString() || ''),
+          multa: parseFormValue(row['Multa']?.toString() || ''),
+          juros: parseFormValue(row['Juros']?.toString() || ''),
+          taxa: parseFormValue(row['Taxa']?.toString() || ''),
+          vl_issqn: parseFormValue(row['ValorISSQN']?.toString() || ''),
+          historico: row['Historico'] || null,
+          status: row['Status'] || null,
+          vcto_guias_iss_proprio: parseDate(row['VencimentoISS']),
+          data_emissao: parseDate(row['DataEmissao']),
+          qtd: row['Quantidade'] ? parseInt(row['Quantidade']) : null,
+          responsavel: row['Responsavel'] || user?.$id || '',
+          teamId: row['TeamId'] || user?.teamId || '',
+        };
+
+        try {
+          await registersService.AddRegister(payload);
+        } catch (err) {
+          console.error("Erro ao importar linha:", row, err);
+        }
+      }
+
+      toast.success("Importação concluída!");
+      fetchData();
+    } catch (err) {
+      toast.error("Erro ao importar Excel");
+      console.error(err);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       <RegistrosHeader
         onExport={exportToExcel}
         hasData={filteredDocuments.length > 0}
+        onImport={handleImport}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">

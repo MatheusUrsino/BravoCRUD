@@ -1155,15 +1155,8 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                           <span>
-                            Emissão: {doc.data_emissao
-                              ? formatDate(
-                                (() => {
-                                  const d = new Date(doc.data_emissao);
-                                  d.setDate(d.getDate());
-                                  return d.toLocaleDateString('pt-BR');
-                                })()
-                              )
-                              : '-'}
+                          Emissão: {doc.data_emissao ? formatDate(doc.data_emissao) : '-'}
+
                           </span>
                           <br />
                           <span>

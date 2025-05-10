@@ -20,5 +20,6 @@ if (projectId.length < 10) {
 client
   .setEndpoint(endpoint)
   .setProject(projectId);
+  
 
 export default client;
