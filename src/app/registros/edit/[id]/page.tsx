@@ -39,12 +39,22 @@ const EditRegisterPage = () => {
         empresa: "",
         loja: "",
         docSap: "",
-        cnpj: "",
-        im: "",
-        municipio: "",
-        status_empresa: "",
-        estado: "",
-        responsavel: "",
+        tipo_registro: "",
+        // Tomador
+        cnpj_tomador: "",
+        municipio_tomador: "",
+        estado_tomador: "",
+        im_tomador: "",
+        // Prestador
+        cnpj_prestador: "",
+        municipio_prestador: "",
+        estado_prestador: "",
+        im_prestador: "",
+        // Nota
+        numero_nota: "",
+        data_nota: "",
+        codigo_servico: "",
+        // Financeiro e outros
         faturamento: "",
         base_calculo: "",
         aliquota: "",
@@ -52,11 +62,15 @@ const EditRegisterPage = () => {
         juros: "",
         taxa: "",
         vl_issqn: "",
+        iss_retido: "",
         historico: "",
         status: "",
+        status_empresa: "",
         vcto_guias_iss_proprio: "",
         data_emissao: "",
         qtd: "",
+        responsavel: "",
+        teamId: "",
         pdf_anexo1_id: "",
         pdf_anexo2_id: ""
     });
@@ -215,26 +229,41 @@ const EditRegisterPage = () => {
                 empresa: formData.get("empresa")?.toString() || '',
                 loja: Number(formData.get("loja")),
                 docSap: formData.get("docSap")?.toString() || '',
-                cnpj: formData.get("cnpj")?.toString().replace(/\D/g, '') || '',
-                im: formData.get("im")?.toString() || '',
-                municipio: formData.get("municipio")?.toString() || '',
-                status_empresa: formData.get("status_empresa")?.toString() || '',
-                estado: formData.get("estado")?.toString().toUpperCase() || '',
+                tipo_registro: formData.get("tipo_registro")?.toString() || '',
+                // Tomador
+                cnpj_tomador: formData.get("cnpj_tomador")?.toString() || '',
+                municipio_tomador: formData.get("municipio_tomador")?.toString() || '',
+                estado_tomador: formData.get("estado_tomador")?.toString() || '',
+                im_tomador: formData.get("im_tomador")?.toString() || '',
+                // Prestador
+                cnpj_prestador: formData.get("cnpj_prestador")?.toString() || '',
+                municipio_prestador: formData.get("municipio_prestador")?.toString() || '',
+                estado_prestador: formData.get("estado_prestador")?.toString() || '',
+                im_prestador: formData.get("im_prestador")?.toString() || '',
+                // Nota
+                numero_nota: formData.get("numero_nota")?.toString() || '',
+                data_nota: formData.get("data_nota")?.toString() || '',
+                codigo_servico: formData.get("codigo_servico")?.toString() || '',
+                // Financeiro
                 faturamento: parseFormValue(formData.get("faturamento")?.toString() || ''),
                 base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || ''),
                 aliquota: parseFormValue(formData.get("aliquota")?.toString() || ''),
                 multa: parseFormValue(formData.get("multa")?.toString() || ''),
                 juros: parseFormValue(formData.get("juros")?.toString() || ''),
                 taxa: parseFormValue(formData.get("taxa")?.toString() || ''),
-                vl_issqn: finalCalculation.raw, // Usa o valor calculado diretamente
-                historico: formData.get("historico")?.toString() || null,
+                vl_issqn: finalCalculation.raw,
+                iss_retido: formData.get("iss_retido")?.toString() || '',
+                // Outros
+                status_empresa: formData.get("status_empresa")?.toString() || '',
                 status: formData.get("status")?.toString() || null,
+                historico: formData.get("historico")?.toString() || null,
                 vcto_guias_iss_proprio: formattedVctoDate,
                 data_emissao: new Date(formData.get("data_emissao")?.toString() || '').toISOString(),
                 qtd: formData.get("qtd") ? parseInt(formData.get("qtd")?.toString() || '0') : null,
                 responsavel: account.$id,
                 teamId: teamId,
-                ...fileIds
+                pdf_anexo1_id: fileIds.pdf_anexo1_id,
+                pdf_anexo2_id: fileIds.pdf_anexo2_id
             };
 
             await registersService.update(id, payload);
@@ -321,14 +350,24 @@ const EditRegisterPage = () => {
                     setRegister({
                         ...registerData,
                         empresa: registerData.empresa?.toString() || "",
-                        loja: registerData.loja || "",
+                        loja: registerData.loja?.toString() || "",
                         docSap: registerData.docSap || "",
-                        cnpj: registerData.cnpj ? formatCNPJ(registerData.cnpj) : "",
-                        im: registerData.im || "",
-                        municipio: registerData.municipio || "",
-                        status_empresa: registerData.status_empresa || "",
-                        estado: registerData.estado || "",
-                        responsavel: registerData.responsavel || "",
+                        tipo_registro: registerData.tipo_registro || "",
+                        // Tomador
+                        cnpj_tomador: registerData.cnpj_tomador || "",
+                        municipio_tomador: registerData.municipio_tomador || "",
+                        estado_tomador: registerData.estado_tomador || "",
+                        im_tomador: registerData.im_tomador || "",
+                        // Prestador
+                        cnpj_prestador: registerData.cnpj_prestador || "",
+                        municipio_prestador: registerData.municipio_prestador || "",
+                        estado_prestador: registerData.estado_prestador || "",
+                        im_prestador: registerData.im_prestador || "",
+                        // Nota
+                        numero_nota: registerData.numero_nota || "",
+                        data_nota: registerData.data_nota?.split('T')[0] || "",
+                        codigo_servico: registerData.codigo_servico || "",
+                        // Financeiro e outros
                         faturamento: registerData.faturamento?.toString() || "",
                         base_calculo: registerData.base_calculo?.toString() || "",
                         aliquota: registerData.aliquota?.toString() || "",
@@ -336,11 +375,15 @@ const EditRegisterPage = () => {
                         juros: registerData.juros?.toString() || "",
                         taxa: registerData.taxa?.toString() || "",
                         vl_issqn: initialVlIssqn.formatted,
+                        iss_retido: registerData.iss_retido || "",
                         historico: registerData.historico || "",
                         status: registerData.status || "",
+                        status_empresa: registerData.status_empresa || "",
                         vcto_guias_iss_proprio: registerData.vcto_guias_iss_proprio?.split('T')[0] || "",
                         data_emissao: registerData.data_emissao?.split('T')[0] || "",
                         qtd: registerData.qtd?.toString() || "",
+                        responsavel: registerData.responsavel || "",
+                        teamId: registerData.teamId || "",
                         pdf_anexo1_id: registerData.pdf_anexo1_id || "",
                         pdf_anexo2_id: registerData.pdf_anexo2_id || ""
                     });
@@ -379,7 +422,7 @@ const EditRegisterPage = () => {
                         Atualize os campos necessários para o registro #{id}
                     </p>
                 </div>
-    
+
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
                     <div className="p-4 sm:p-8">
                         <div className="border-b border-gray-200 pb-4 mb-4">
@@ -395,6 +438,8 @@ const EditRegisterPage = () => {
                                 loading={loading}
                                 onSubmit={handleSubmit}
                                 fields={[
+                                    // --- Dados Gerais ---
+                                    { type: "section", label: "Dados Gerais" },
                                     {
                                         name: "empresa",
                                         label: "EMPRESA",
@@ -406,7 +451,7 @@ const EditRegisterPage = () => {
                                     {
                                         name: "loja",
                                         label: "LOJA",
-                                        type: "text",
+                                        type: "number",
                                         value: register.loja,
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
@@ -420,62 +465,128 @@ const EditRegisterPage = () => {
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
-                                        name: "cnpj",
-                                        label: "CNPJ",
-                                        type: "text",
-                                        mask: "cnpj",
-                                        value: register.cnpj,
-                                        placeholder: "00.000.000/0000-00",
-                                        required: true,
-                                        maxLength: 18,
-                                    },
-                                    {
-                                        name: "im",
-                                        label: "I.M",
-                                        type: "text",
-                                        value: register.im,
-                                        required: true,
-                                        containerClass: "col-span-1 sm:col-span-1"
-                                    },
-                                    {
-                                        name: "municipio",
-                                        label: "Município",
-                                        type: "text",
-                                        value: register.municipio,
-                                        required: true,
-                                        containerClass: "col-span-1 sm:col-span-2"
-                                    },
-                                    {
-                                        name: "status_empresa",
-                                        label: "STATUS EMPRESA",
+                                        name: "tipo_registro",
+                                        label: "TIPO DE REGISTRO",
                                         type: "select",
-                                        value: register.status_empresa,
+                                        value: register.tipo_registro,
                                         options: [
-                                            { value: "Ativa", label: "Ativa" },
-                                            { value: "Inativa", label: "Inativa" },
-                                            { value: "Suspensa", label: "Suspensa" }
+                                            { value: "", label: "Selecione" },
+                                            { value: "PRESTADO", label: "Prestado" },
+                                            { value: "TOMADO", label: "Tomado" }
                                         ],
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
+                                
+                                    // --- Tomador ---
+                                    { type: "section", label: "Dados do Tomador" },
                                     {
-                                        name: "estado",
-                                        label: "Estado (UF)",
+                                        name: "cnpj_tomador",
+                                        label: "CNPJ TOMADOR",
                                         type: "text",
-                                        value: register.estado,
+                                        mask: "cnpj",
+                                        value: register.cnpj_tomador,
+                                        placeholder: "00.000.000/0000-00",
+                                        required: true,
+                                        maxLength: 18,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "municipio_tomador",
+                                        label: "MUNICÍPIO TOMADOR",
+                                        type: "text",
+                                        value: register.municipio_tomador,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "estado_tomador",
+                                        label: "ESTADO TOMADOR (UF)",
+                                        type: "text",
+                                        value: register.estado_tomador,
                                         maxLength: 2,
                                         placeholder: "Ex: SP",
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
-                                        name: "responsavel",
-                                        label: "Responsável",
+                                        name: "im_tomador",
+                                        label: "INSCRIÇÃO MUNICIPAL TOMADOR",
                                         type: "text",
-                                        value: register.responsavel,
-                                        readOnly: true,
+                                        value: register.im_tomador,
+                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
+                                
+                                    // --- Prestador ---
+                                    { type: "section", label: "Dados do Prestador" },
+                                    {
+                                        name: "cnpj_prestador",
+                                        label: "CNPJ PRESTADOR",
+                                        type: "text",
+                                        mask: "cnpj",
+                                        value: register.cnpj_prestador,
+                                        placeholder: "00.000.000/0000-00",
+                                        required: true,
+                                        maxLength: 18,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "municipio_prestador",
+                                        label: "MUNICÍPIO PRESTADOR",
+                                        type: "text",
+                                        value: register.municipio_prestador,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "estado_prestador",
+                                        label: "ESTADO PRESTADOR (UF)",
+                                        type: "text",
+                                        value: register.estado_prestador,
+                                        maxLength: 2,
+                                        placeholder: "Ex: SP",
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "im_prestador",
+                                        label: "INSCRIÇÃO MUNICIPAL PRESTADOR",
+                                        type: "text",
+                                        value: register.im_prestador,
+                                        required: false,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                
+                                    // --- Nota ---
+                                    { type: "section", label: "Dados da Nota" },
+                                    {
+                                        name: "numero_nota",
+                                        label: "NÚMERO DA NOTA",
+                                        type: "text",
+                                        value: register.numero_nota,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "data_nota",
+                                        label: "DATA DA NOTA",
+                                        type: "date",
+                                        value: register.data_nota,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "codigo_servico",
+                                        label: "CÓDIGO DO SERVIÇO",
+                                        type: "text",
+                                        value: register.codigo_servico,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                
+                                    // --- Financeiro ---
+                                    { type: "section", label: "Dados Financeiros" },
                                     {
                                         name: "faturamento",
                                         label: "FATURAMENTO",
@@ -487,7 +598,7 @@ const EditRegisterPage = () => {
                                     },
                                     {
                                         name: "base_calculo",
-                                        label: "BASE DE CALCULO",
+                                        label: "BASE DE CÁLCULO",
                                         type: "text",
                                         value: register.base_calculo,
                                         placeholder: "0,00",
@@ -541,15 +652,37 @@ const EditRegisterPage = () => {
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
-                                        name: "historico",
-                                        label: "HISTÓRICO",
-                                        type: "textarea",
-                                        value: register.historico,
-                                        containerClass: "col-span-2 sm:col-span-2"
+                                        name: "iss_retido",
+                                        label: "ISS RETIDO?",
+                                        type: "select",
+                                        value: register.iss_retido,
+                                        options: [
+                                            { value: "", label: "Selecione" },
+                                            { value: "SIM", label: "Sim" },
+                                            { value: "NAO", label: "Não" }
+                                        ],
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                
+                                    // --- Outros ---
+                                    { type: "section", label: "Outros Dados" },
+                                    {
+                                        name: "status_empresa",
+                                        label: "STATUS EMPRESA",
+                                        type: "select",
+                                        value: register.status_empresa,
+                                        options: [
+                                            { value: "Ativa", label: "Ativa" },
+                                            { value: "Inativa", label: "Inativa" },
+                                            { value: "Suspensa", label: "Suspensa" }
+                                        ],
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
                                         name: "status",
-                                        label: "STATUS",
+                                        label: "STATUS REGISTRO",
                                         type: "select",
                                         value: register.status,
                                         options: [
@@ -560,8 +693,15 @@ const EditRegisterPage = () => {
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
+                                        name: "historico",
+                                        label: "OBSERVAÇÃO",
+                                        type: "textarea",
+                                        value: register.historico,
+                                        containerClass: "col-span-2 sm:col-span-2"
+                                    },
+                                    {
                                         name: "vcto_guias_iss_proprio",
-                                        label: "VCTO GUIAS ISS PRÓPRIO",
+                                        label: "VENCIMENTO DA GUIA",
                                         type: "date",
                                         value: register.vcto_guias_iss_proprio,
                                         required: true,
@@ -569,7 +709,7 @@ const EditRegisterPage = () => {
                                     },
                                     {
                                         name: "data_emissao",
-                                        label: "DATA - EMISSÃO",
+                                        label: "DATA DE EMISSÃO",
                                         type: "date",
                                         value: register.data_emissao,
                                         required: true,
@@ -577,9 +717,17 @@ const EditRegisterPage = () => {
                                     },
                                     {
                                         name: "qtd",
-                                        label: "QTD",
+                                        label: "QUANTIDADE DE NOTA",
                                         type: "text",
                                         value: register.qtd,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "responsavel",
+                                        label: "RESPONSÁVEL",
+                                        type: "text",
+                                        value: register.responsavel,
+                                        readOnly: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {

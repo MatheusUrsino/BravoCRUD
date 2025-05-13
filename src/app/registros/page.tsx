@@ -39,13 +39,47 @@ export default function RegistrosPage() {
   const availableFields: AvailableField[] = [
     { value: "all", label: "Todos os campos", type: "text" },
     { value: "empresa", label: "Empresa", type: "text" },
-    { value: "municipio", label: "Município", type: "text" },
-    { value: "loja", label: "Loja", type: "text" },
-    { value: "cnpj", label: "CNPJ", type: "text" },
-    { value: "status", label: "Status", type: "text" },
-    { value: "vcto_guias_iss_proprio", label: "Vencimento ISS", type: "date" },
-    { value: "data_emissao", label: "Data Emissão", type: "date" },
+    { value: "loja", label: "Loja", type: "number" },
+    { value: "docSap", label: "Doc SAP", type: "text" },
+    { value: "tipo_registro", label: "Tipo de Registro", type: "text" },
+
+    // Tomador
+    { value: "cnpj_tomador", label: "CNPJ Tomador", type: "text" },
+    { value: "municipio_tomador", label: "Município Tomador", type: "text" },
+    { value: "estado_tomador", label: "Estado Tomador", type: "text" },
+    { value: "im_tomador", label: "IM Tomador", type: "text" },
+
+    // Prestador
+    { value: "cnpj_prestador", label: "CNPJ Prestador", type: "text" },
+    { value: "municipio_prestador", label: "Município Prestador", type: "text" },
+    { value: "estado_prestador", label: "Estado Prestador", type: "text" },
+    { value: "im_prestador", label: "IM Prestador", type: "text" },
+
+    // Nota
+    { value: "numero_nota", label: "Número da Nota", type: "text" },
+    { value: "data_nota", label: "Data da Nota", type: "date" },
+    { value: "codigo_servico", label: "Código do Serviço", type: "text" },
+
+    // Financeiro e outros
+    { value: "faturamento", label: "Faturamento", type: "text" },
+    { value: "base_calculo", label: "Base de Cálculo", type: "text" },
+    { value: "aliquota", label: "Alíquota", type: "text" },
+    { value: "multa", label: "Multa", type: "text" },
+    { value: "juros", label: "Juros", type: "text" },
+    { value: "taxa", label: "Taxa", type: "text" },
+    { value: "vl_issqn", label: "VL. ISSQN", type: "text" },
+    { value: "iss_retido", label: "ISS Retido", type: "text" },
+    { value: "status_empresa", label: "Status Empresa", type: "text" },
+    { value: "status", label: "Status Registro", type: "text" },
+    { value: "historico", label: "Observação", type: "text" },
+    { value: "ocorrencia", label: "Ocorrência", type: "text" },
+    { value: "vcto_guias_iss_proprio", label: "Vencimento da Guia", type: "date" },
+    { value: "data_emissao", label: "Data de Emissão", type: "date" },
+    { value: "qtd", label: "Quantidade de Nota", type: "text" },
+    { value: "responsavel", label: "Responsável", type: "text" },
+    { value: "teamId", label: "TeamId", type: "text" },
   ];
+
   const handleSelectForDeletion = (id: string) => {
     setSelectedId(id);
     setShowConfirm(true);
@@ -110,12 +144,27 @@ export default function RegistrosPage() {
     const dataToExport = filteredDocuments.map((item) => ({
       Empresa: item.empresa || '',
       Loja: item.loja || '',
-      DocumentoSAP: item.docSap || '',
-      CNPJ: item.cnpj || '',
-      InscricaoMunicipal: item.im || '',
-      Municipio: item.municipio || '',
-      StatusEmpresa: item.status_empresa || '',
-      Estado: item.estado || '',
+      DocSAP: item.docSap || '',
+      TipoRegistro: item.tipo_registro || '',
+
+      // Tomador
+      CNPJTomador: item.cnpj_tomador || '',
+      MunicipioTomador: item.municipio_tomador || '',
+      EstadoTomador: item.estado_tomador || '',
+      IMTomador: item.im_tomador || '',
+
+      // Prestador
+      CNPJPrestador: item.cnpj_prestador || '',
+      MunicipioPrestador: item.municipio_prestador || '',
+      EstadoPrestador: item.estado_prestador || '',
+      IMPrestador: item.im_prestador || '',
+
+      // Nota
+      NumeroNota: item.numero_nota || '',
+      DataNota: item.data_nota || '',
+      CodigoServico: item.codigo_servico || '',
+
+      // Financeiro e outros
       Faturamento: item.faturamento ?? '',
       BaseCalculo: item.base_calculo ?? '',
       Aliquota: item.aliquota ?? '',
@@ -123,11 +172,14 @@ export default function RegistrosPage() {
       Juros: item.juros ?? '',
       Taxa: item.taxa ?? '',
       ValorISSQN: item.vl_issqn ?? '',
-      Historico: item.historico || '',
-      Status: item.status || '',
-      VencimentoISS: item.vcto_guias_iss_proprio || '',
+      ISSRetido: item.iss_retido || '',
+      StatusEmpresa: item.status_empresa || '',
+      StatusRegistro: item.status || '',
+      Observacao: item.historico || '',
+      Ocorrencia: item.ocorrencia || '',
+      VencimentoGuia: item.vcto_guias_iss_proprio || '',
       DataEmissao: item.data_emissao || '',
-      Quantidade: item.qtd ?? '',
+      QuantidadeNota: item.qtd ?? '',
       Responsavel: item.responsavel || '',
       TeamId: item.teamId || '',
     }));
@@ -294,24 +346,39 @@ export default function RegistrosPage() {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const json: any[] = XLSX.utils.sheet_to_json(worksheet);
-
+  
       for (const row of json) {
         const payload: any = {
           empresa: row['Empresa'] || '',
           loja: row['Loja'] ? Number(row['Loja']) : null,
-          docSap: row['DocumentoSAP'] || '',
-          cnpj: row['CNPJ']?.toString().replace(/\D/g, '') || '',
-          im: row['InscricaoMunicipal'] || '',
-          municipio: row['Municipio'] || '',
-          status_empresa: row['StatusEmpresa'] || '',
-          estado: row['Estado']?.toString().toUpperCase() || '',
+          docSap: row['DocSAP'] || '',
+          tipo_registro: row['TipoRegistro'] || '',
+  
+          // Tomador
+          cnpj_tomador: row['CNPJTomador'] || '',
+          municipio_tomador: row['MunicipioTomador'] || '',
+          estado_tomador: row['EstadoTomador'] || '',
+          im_tomador: row['IMTomador'] || '',
+  
+          // Prestador
+          cnpj_prestador: row['CNPJPrestador'] || '',
+          municipio_prestador: row['MunicipioPrestador'] || '',
+          estado_prestador: row['EstadoPrestador'] || '',
+          im_prestador: row['IMPrestador'] || '',
+  
+          // Nota
+          numero_nota: row['NumeroNota'] || '',
+          data_nota: parseDate(row['DataNota']),
+          codigo_servico: row['CodigoServico'] || '',
+  
+          // Financeiro e outros
           faturamento: parseFormValue(row['Faturamento']?.toString() || ''),
           base_calculo: parseFormValue(row['BaseCalculo']?.toString() || ''),
           aliquota: parseFormValue(row['Aliquota']?.toString() || ''),
@@ -319,22 +386,25 @@ export default function RegistrosPage() {
           juros: parseFormValue(row['Juros']?.toString() || ''),
           taxa: parseFormValue(row['Taxa']?.toString() || ''),
           vl_issqn: parseFormValue(row['ValorISSQN']?.toString() || ''),
-          historico: row['Historico'] || null,
-          status: row['Status'] || null,
-          vcto_guias_iss_proprio: parseDate(row['VencimentoISS']),
+          iss_retido: row['ISSRetido'] || '',
+          status_empresa: row['StatusEmpresa'] || '',
+          status: row['StatusRegistro'] || '',
+          historico: row['Observacao'] || null,
+          ocorrencia: row['Ocorrencia'] || null,
+          vcto_guias_iss_proprio: parseDate(row['VencimentoGuia']),
           data_emissao: parseDate(row['DataEmissao']),
-          qtd: row['Quantidade'] ? parseInt(row['Quantidade']) : null,
+          qtd: row['QuantidadeNota'] ? parseInt(row['QuantidadeNota']) : null,
           responsavel: row['Responsavel'] || user?.$id || '',
           teamId: row['TeamId'] || user?.teamId || '',
         };
-
+  
         try {
           await registersService.AddRegister(payload);
         } catch (err) {
           console.error("Erro ao importar linha:", row, err);
         }
       }
-
+  
       toast.success("Importação concluída!");
       fetchData();
     } catch (err) {
@@ -342,7 +412,6 @@ export default function RegistrosPage() {
       console.error(err);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50">
