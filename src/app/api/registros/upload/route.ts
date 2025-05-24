@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Storage, ID } from 'appwrite';
-import client from '../../../../config/appwrite.config';
+import client from '@/config/appwrite.config';
 
 export const config = {
     api: {
@@ -8,7 +8,17 @@ export const config = {
     },
 };
 
-export async function POST(request: Request) {
+interface UploadResult {
+    success: boolean;
+    message?: string;
+    results?: Array<{
+        field: string;
+        fileId: string;
+    }>;
+    error?: string;
+}
+
+export async function POST(request: Request): Promise<NextResponse<UploadResult>> {
     try {
         const formData = await request.formData();
         const storage = new Storage(client);
@@ -16,12 +26,15 @@ export async function POST(request: Request) {
 
         if (!bucketId) {
             return NextResponse.json(
-                { success: false, message: 'Bucket ID não configurado' },
-                { status: 500, headers: { 'Content-Type': 'application/json' } }
+                { 
+                    success: false, 
+                    error: 'Bucket ID não configurado' 
+                },
+                { status: 500 }
             );
         }
 
-        const results = [];
+        const results: Array<{ field: string; fileId: string }> = [];
         const files = [
             { field: 'pdf_anexo1', file: formData.get('pdf_anexo1') },
             { field: 'pdf_anexo2', file: formData.get('pdf_anexo2') }
@@ -29,12 +42,10 @@ export async function POST(request: Request) {
 
         for (const { field, file } of files) {
             if (file instanceof File && file.size > 0) {
-                const fileBuffer = await file.arrayBuffer();
-                const blob = new Blob([fileBuffer], { type: file.type });
                 const uploadedFile = await storage.createFile(
                     bucketId,
                     ID.unique(),
-                    new File([blob], file.name, { type: file.type })
+                    file
                 );
                 
                 results.push({
@@ -44,15 +55,33 @@ export async function POST(request: Request) {
             }
         }
 
+        if (results.length === 0) {
+            return NextResponse.json(
+                { 
+                    success: false, 
+                    error: 'Nenhum arquivo válido enviado' 
+                },
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json(
-            { success: true, message: 'Arquivos enviados com sucesso', results },
-            { headers: { 'Content-Type': 'application/json' } }
+            { 
+                success: true, 
+                message: 'Arquivos enviados com sucesso', 
+                results 
+            },
+            { status: 200 }
         );
 
     } catch (error: any) {
+        console.error('Erro no upload:', error);
         return NextResponse.json(
-            { success: false, message: error.message || 'Erro ao processar upload' },
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
+            { 
+                success: false, 
+                error: error.message || 'Erro ao processar upload' 
+            },
+            { status: 500 }
         );
     }
 }

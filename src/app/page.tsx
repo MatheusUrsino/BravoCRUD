@@ -6,24 +6,34 @@ import { toast } from "react-toastify";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
-import { 
-  FiCalendar, FiCheck, FiClock, FiFileText, FiTrendingUp, 
-  FiX, FiFilter, FiBell, FiBarChart2, FiPieChart, FiMapPin,
-  FiDollarSign, FiLayers, FiUsers, FiHome, FiSettings
+import {
+  FiCalendar, FiCheck, FiClock, FiFileText, FiTrendingUp,
+  FiX, FiFilter, FiBell, FiBarChart2, FiPieChart, FiSettings, FiPieChart as FiPie, FiBarChart, FiActivity
 } from "react-icons/fi";
+import { MdNoAccounts, MdOutlineDoNotDisturbAlt } from "react-icons/md";
+import { BsFillExclamationTriangleFill } from "react-icons/bs";
 import Head from "next/head";
 import { formatDate } from "../utils/formatters";
 import { AuthService, RegistersService } from "../service";
 import { AvailableField, Filter } from "@/types/registros";
 import { RegistrosFilters } from "@/components/registros";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel } from "@mui/material";
+import { Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, Tooltip, Avatar } from "@mui/material";
 
 // Carregamento dinâmico para melhor performance
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-type KPIKey = "total" | "active" | "pending" | "overdue" | "revenue" | "branches" | "taxValue";
-type ChartType = "status" | "revenue" | "municipality" | "state" | "aliquota" | "monthlyComparison";
+type KPIKey = "total" | "concluido" | "erro_login" | "modulo_nao_habilitado" | "sem_acesso" | "pendencia" | "sem_movimento" | "revenue";
+type ChartType = "status" | "revenue";
+
+const STATUS_LABELS = [
+  { key: "concluido", label: "Concluído", color: "#32CD32", icon: <FiCheck /> },
+  { key: "erro_login", label: "Erro de login", color: "#FF4500", icon: <MdNoAccounts /> },
+  { key: "modulo_nao_habilitado", label: "Módulo não habilitado", color: "#6366F1", icon: <FiSettings /> },
+  { key: "sem_acesso", label: "Sem acesso", color: "#3B82F6", icon: <FiX /> },
+  { key: "pendencia", label: "Pendência", color: "#FF0000", icon: <BsFillExclamationTriangleFill /> },
+  { key: "sem_movimento", label: "Sem movimento", color: "#778899", icon: <MdOutlineDoNotDisturbAlt /> },
+];
 
 export default function DashboardPage() {
   const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
@@ -31,15 +41,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [stats, setStats] = useState({
     total: 0,
-    active: 0,
-    pending: 0,
-    overdue: 0,
-    revenue: 0,
-    branches: 0,
-    taxValue: 0
+    concluido: 0,
+    erro_login: 0,
+    modulo_nao_habilitado: 0,
+    sem_acesso: 0,
+    pendencia: 0,
+    sem_movimento: 0,
+    revenue: 0
   });
-  const [selectedKPIs, setSelectedKPIs] = useState<KPIKey[]>(["total", "active", "pending", "overdue", "revenue"]);
-  const [selectedCharts, setSelectedCharts] = useState<ChartType[]>(["status", "revenue", "municipality"]);
+  const [selectedKPIs] = useState<KPIKey[]>(["total", "concluido", "erro_login", "modulo_nao_habilitado", "sem_acesso", "pendencia", "sem_movimento", "revenue"]);
   const [showAlert, setShowAlert] = useState(false);
   const [chartTheme, setChartTheme] = useState<"light" | "dark">("light");
   const [groupBy, setGroupBy] = useState<"month" | "quarter" | "year">("month");
@@ -53,6 +63,9 @@ export default function DashboardPage() {
   const [newFilterType, setNewFilterType] = useState("text");
   const [dateFilterValue, setDateFilterValue] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // Atividades recentes
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
   const authService = AuthService.getInstance();
   const registersService = RegistersService.getInstance();
@@ -85,6 +98,12 @@ export default function DashboardPage() {
       // Calcular estatísticas iniciais
       calculateStats(docs.documents || []);
 
+      // Atividades recentes (últimos 8 registros modificados)
+      setRecentActivities(
+        (docs.documents || [])
+          .sort((a, b) => new Date(b.$updatedAt).getTime() - new Date(a.$updatedAt).getTime())
+          .slice(0, 8)
+      );
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
       toast.error("Erro ao carregar dashboard");
@@ -94,30 +113,26 @@ export default function DashboardPage() {
   };
 
   const calculateStats = (docs: any[]) => {
-    const now = new Date();
-    const active = docs.filter(doc => doc.status_empresa === 'Ativa').length;
-    const pending = docs.filter(doc => doc.status === 'Pendente').length;
-    const overdue = docs.filter(doc => {
-      if (!doc.vcto_guias_iss_proprio) return false;
-      const dueDate = new Date(doc.vcto_guias_iss_proprio);
-      return dueDate < now;
-    }).length;
-
+    const concluido = docs.filter(doc => doc.status === 'CONCLUIDO').length;
+    const erro_login = docs.filter(doc => doc.status === 'ERRO_LOGIN').length;
+    const modulo_nao_habilitado = docs.filter(doc => doc.status === 'MODULO_NAO_HABILITADO').length;
+    const sem_acesso = docs.filter(doc => doc.status === 'SEM_ACESSO').length;
+    const pendencia = docs.filter(doc => doc.status === 'PENDENCIA').length;
+    const sem_movimento = docs.filter(doc => doc.status === 'SEM_MOVIMENTO').length;
     const revenue = docs.reduce((sum, doc) => sum + (doc.faturamento || 0), 0);
-    const taxValue = docs.reduce((sum, doc) => sum + (doc.vl_issqn || 0), 0);
-    const uniqueBranches = new Set(docs.map(doc => doc.loja)).size;
 
     setStats({
       total: docs.length,
-      active,
-      pending,
-      overdue,
-      revenue,
-      branches: uniqueBranches,
-      taxValue
+      concluido,
+      erro_login,
+      modulo_nao_habilitado,
+      sem_acesso,
+      pendencia,
+      sem_movimento,
+      revenue
     });
 
-    setShowAlert(pending > 0 || overdue > 0);
+    setShowAlert(pendencia > 0);
   };
 
   // Filtro avançado
@@ -159,6 +174,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line
   }, []);
 
   // Configurações de tema para os gráficos
@@ -179,15 +195,16 @@ export default function DashboardPage() {
 
   const currentTheme = chartThemeConfig[chartTheme];
 
-  // Gráfico de status das empresas (donut)
+  // Gráfico de status dos registros (donut + barra horizontal)
   const statusChartOptions: ApexOptions = {
     chart: {
       type: 'donut',
       background: currentTheme.background,
-      foreColor: currentTheme.textColor
+      foreColor: currentTheme.textColor,
+      toolbar: { show: false }
     },
-    labels: ['Ativas', 'Inativas', 'Suspensas', 'Outros'],
-    colors: ['#10B981', '#EF4444', '#F59E0B', '#6B7280'],
+    labels: STATUS_LABELS.map(s => s.label),
+    colors: STATUS_LABELS.map(s => s.color),
     legend: {
       position: 'bottom',
       labels: {
@@ -210,7 +227,7 @@ export default function DashboardPage() {
             show: true,
             total: {
               show: true,
-              label: 'Total Empresas',
+              label: 'Total',
               color: currentTheme.textColor,
               formatter: () => stats.total.toString()
             }
@@ -221,27 +238,74 @@ export default function DashboardPage() {
     tooltip: {
       theme: chartTheme,
       y: {
-        formatter: (value) => `${value} (${Math.round((value / stats.total) * 100)}%)`
+        formatter: (value) => `${value} (${stats.total ? Math.round((value / stats.total) * 100) : 0}%)`
       }
     }
   };
 
   const statusChartSeries = [
-    filteredDocs.filter(doc => doc.status_empresa === 'Ativa').length,
-    filteredDocs.filter(doc => doc.status_empresa === 'Inativa').length,
-    filteredDocs.filter(doc => doc.status_empresa === 'Suspensa').length,
-    filteredDocs.filter(doc => !['Ativa', 'Inativa', 'Suspensa'].includes(doc.status_empresa)).length
+    stats.concluido,
+    stats.erro_login,
+    stats.modulo_nao_habilitado,
+    stats.sem_acesso,
+    stats.pendencia,
+    stats.sem_movimento
   ];
 
-  // Gráfico de faturamento por período
+  // Gráfico de barras horizontal para status
+  const statusBarOptions: ApexOptions = {
+    chart: {
+      type: 'bar',
+      background: currentTheme.background,
+      foreColor: currentTheme.textColor,
+      toolbar: { show: false }
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 6,
+        barHeight: '60%',
+        distributed: true,
+      }
+    },
+    colors: STATUS_LABELS.map(s => s.color),
+    dataLabels: {
+      enabled: showDataLabels,
+      style: {
+        colors: [currentTheme.textColor]
+      }
+    },
+    xaxis: {
+      categories: STATUS_LABELS.map(s => s.label),
+      labels: {
+        style: { colors: currentTheme.textColor }
+      },
+      title: { text: "Quantidade", style: { color: currentTheme.textColor } }
+    },
+    yaxis: {
+      labels: { style: { colors: currentTheme.textColor } }
+    },
+    grid: {
+      borderColor: currentTheme.gridColor,
+      strokeDashArray: 4
+    },
+    tooltip: {
+      theme: chartTheme,
+      y: {
+        formatter: (value) => `${value} registro${value === 1 ? "" : "s"}`
+      }
+    }
+  };
+
+  // Gráfico de faturamento por período (linha + área)
   const getGroupedDates = () => {
     const groupedData: { [key: string]: number } = {};
-    
+
     filteredDocs.forEach(doc => {
       if (doc.data_emissao && doc.faturamento) {
         const date = new Date(doc.data_emissao);
         let key;
-        
+
         if (groupBy === "month") {
           key = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
         } else if (groupBy === "quarter") {
@@ -250,11 +314,11 @@ export default function DashboardPage() {
         } else {
           key = date.getFullYear().toString();
         }
-        
+
         groupedData[key] = (groupedData[key] || 0) + doc.faturamento;
       }
     });
-    
+
     return groupedData;
   };
 
@@ -272,12 +336,12 @@ export default function DashboardPage() {
       return parseInt(a) - parseInt(b);
     }
   });
-  
+
   const faturamentoPeriodoData = faturamentoPeriodoLabels.map(period => faturamentoPorPeriodo[period]);
 
   const faturamentoOptions: ApexOptions = {
-    chart: { 
-      type: 'line',
+    chart: {
+      type: 'area',
       background: currentTheme.background,
       foreColor: currentTheme.textColor,
       toolbar: {
@@ -293,7 +357,7 @@ export default function DashboardPage() {
         }
       }
     },
-    xaxis: { 
+    xaxis: {
       categories: faturamentoPeriodoLabels,
       labels: {
         style: {
@@ -317,20 +381,33 @@ export default function DashboardPage() {
         formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       }
     },
-    stroke: { 
+    stroke: {
       curve: 'smooth',
       width: 3
     },
-    colors: ['#6366F1', '#10B981'],
-    dataLabels: { 
+    fill: {
+      type: "gradient",
+      gradient: {
+        shade: chartTheme === "dark" ? "dark" : "light",
+        type: "vertical",
+        shadeIntensity: 0.2,
+        gradientToColors: [chartTheme === "dark" ? "#6366F1" : "#10B981"],
+        inverseColors: false,
+        opacityFrom: 0.7,
+        opacityTo: 0.1,
+        stops: [0, 100]
+      }
+    },
+    colors: ['#10B981'],
+    dataLabels: {
       enabled: showDataLabels,
       style: {
         colors: [currentTheme.background]
       },
       formatter: (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
     },
-    title: { 
-      text: 'Evolução do Faturamento', 
+    title: {
+      text: 'Evolução do Faturamento',
       align: 'left',
       style: {
         color: currentTheme.textColor,
@@ -349,7 +426,7 @@ export default function DashboardPage() {
     },
     annotations: showTrendLine ? {
       yaxis: [{
-        y: stats.revenue / filteredDocs.length,
+        y: stats.revenue / (filteredDocs.length || 1),
         borderColor: '#F59E0B',
         label: {
           borderColor: '#F59E0B',
@@ -357,7 +434,7 @@ export default function DashboardPage() {
             color: currentTheme.textColor,
             background: currentTheme.background
           },
-          text: `Média: ${(stats.revenue / filteredDocs.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+          text: `Média: ${(stats.revenue / (filteredDocs.length || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
         }
       }]
     } : undefined,
@@ -369,372 +446,23 @@ export default function DashboardPage() {
     }
   };
 
-  // Gráfico de distribuição por município (pizza)
-  const municipios: { [key: string]: number } = {};
-  filteredDocs.forEach(doc => {
-    if (doc.municipio) {
-      municipios[doc.municipio] = (municipios[doc.municipio] || 0) + 1;
-    }
-  });
-  
-  // Pegar os top 5 municípios e agrupar o restante como "Outros"
-  const sortedMunicipios = Object.entries(municipios)
-    .sort((a, b) => b[1] - a[1]);
-  
-  const topMunicipios = sortedMunicipios.slice(0, 5);
-  const otherCount = sortedMunicipios.slice(5).reduce((sum, [, count]) => sum + count, 0);
-  
-  const municipioLabels = [
-    ...topMunicipios.map(([municipio]) => municipio),
-    ...(otherCount > 0 ? ['Outros'] : [])
-  ];
-  
-  const municipioData = [
-    ...topMunicipios.map(([, count]) => count),
-    ...(otherCount > 0 ? [otherCount] : [])
-  ];
-
-  const municipioOptions: ApexOptions = {
-    chart: { 
-      type: 'pie',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor
-    },
-    labels: municipioLabels,
-    colors: ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#A21CAF'],
-    legend: { 
-      position: 'bottom',
-      labels: {
-        colors: currentTheme.textColor
-      }
-    },
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.background]
-      },
-      formatter: (val, { seriesIndex }) => {
-        return `${municipioLabels[seriesIndex]}: ${val} (${Math.round((Number(val) / filteredDocs.length) * 100)}%)`;
-      }
-    },
-    title: { 
-      text: 'Distribuição por Município', 
-      align: 'left',
-      style: {
-        color: currentTheme.textColor,
-        fontSize: '16px'
-      }
-    },
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (value) => `${value} filiais`
-      }
-    }
-  };
-
-  // Gráfico de distribuição por estado (barra horizontal)
-  const estados: { [key: string]: number } = {};
-  filteredDocs.forEach(doc => {
-    if (doc.estado) {
-      estados[doc.estado] = (estados[doc.estado] || 0) + 1;
-    }
-  });
-  
-  const stateChartOptions: ApexOptions = {
-    chart: {
-      type: 'bar',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        borderRadius: 4,
-        distributed: true
-      }
-    },
-    colors: ['#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF'],
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.background]
-      }
-    },
-    xaxis: {
-      categories: Object.keys(estados),
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        }
-      },
-      axisBorder: {
-        show: true,
-        color: currentTheme.axisColor
-      },
-      axisTicks: {
-        show: true,
-        color: currentTheme.axisColor
-      }
-    },
-    yaxis: {
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        }
-      }
-    },
-    title: {
-      text: 'Distribuição por Estado',
-      align: 'left',
-      style: {
-        color: currentTheme.textColor,
-        fontSize: '16px'
-      }
-    },
-    tooltip: {
-      theme: chartTheme
-    }
-  };
-
-  // Gráfico de alíquota média por estado
-  const aliquotaPorEstado: { [key: string]: { sum: number; count: number } } = {};
-  filteredDocs.forEach(doc => {
-    if (doc.estado && doc.aliquota) {
-      const aliquota = parseFloat(doc.aliquota);
-      if (!isNaN(aliquota)) {
-        if (!aliquotaPorEstado[doc.estado]) {
-          aliquotaPorEstado[doc.estado] = { sum: 0, count: 0 };
-        }
-        aliquotaPorEstado[doc.estado].sum += aliquota;
-        aliquotaPorEstado[doc.estado].count += 1;
-      }
-    }
-  });
-
-  const estadosAliquota = Object.keys(aliquotaPorEstado);
-  const mediaAliquotaData = estadosAliquota.map(estado => 
-    Number((aliquotaPorEstado[estado].sum / aliquotaPorEstado[estado].count).toFixed(2))
-  );
-
-  const aliquotaOptions: ApexOptions = {
-    chart: {
-      type: 'bar',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor
-    },
-    plotOptions: {
-      bar: {
-        borderRadius: 4,
-        columnWidth: '70%',
-      }
-    },
-    colors: ['#10B981'],
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.background]
-      },
-      formatter: (val) => `${val}%`
-    },
-    xaxis: {
-      categories: estadosAliquota,
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        }
-      },
-      axisBorder: {
-        show: true,
-        color: currentTheme.axisColor
-      },
-      axisTicks: {
-        show: true,
-        color: currentTheme.axisColor
-      }
-    },
-    yaxis: {
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        },
-        formatter: (val) => `${val}%`
-      },
-      max: 10 // Assumindo que a alíquota máxima é 10%
-    },
-    title: {
-      text: 'Alíquota Média por Estado',
-      align: 'left',
-      style: {
-        color: currentTheme.textColor,
-        fontSize: '16px'
-      }
-    },
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (val) => `${val}%`
-      }
-    }
-  };
-
-  // Gráfico de comparação mensal (ano atual vs ano anterior)
-  const currentYear = new Date().getFullYear();
-  const monthlyComparisonData = () => {
-    const currentYearData: number[] = Array(12).fill(0);
-    const previousYearData: number[] = Array(12).fill(0);
-    
-    filteredDocs.forEach(doc => {
-      if (doc.data_emissao && doc.faturamento) {
-        const date = new Date(doc.data_emissao);
-        const month = date.getMonth();
-        const year = date.getFullYear();
-        const faturamento = doc.faturamento;
-        
-        if (year === currentYear) {
-          currentYearData[month] += faturamento;
-        } else if (year === currentYear - 1) {
-          previousYearData[month] += faturamento;
-        }
-      }
-    });
-    
-    return {
-      currentYear: currentYearData,
-      previousYear: previousYearData
-    };
-  };
-
-  const comparisonData = monthlyComparisonData();
-  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-  const monthlyComparisonOptions: ApexOptions = {
-    chart: {
-      type: 'bar',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor,
-      stacked: false,
-      toolbar: {
-        show: true
-      }
-    },
-    colors: ['#3B82F6', '#10B981'],
-    plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: '55%'
-      },
-    },
-    dataLabels: {
-      enabled: false
-    },
-    stroke: {
-      show: true,
-      width: 2,
-      colors: ['transparent']
-    },
-    xaxis: {
-      categories: monthNames,
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        }
-      },
-      axisBorder: {
-        show: true,
-        color: currentTheme.axisColor
-      },
-      axisTicks: {
-        show: true,
-        color: currentTheme.axisColor
-      }
-    },
-    yaxis: {
-      title: {
-        text: 'Faturamento',
-        style: {
-          color: currentTheme.textColor
-        }
-      },
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        },
-        formatter: (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
-      }
-    },
-    fill: {
-      opacity: 1
-    },
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      }
-    },
-    title: {
-      text: `Comparativo Mensal ${currentYear} vs ${currentYear - 1}`,
-      align: 'left',
-      style: {
-        color: currentTheme.textColor,
-        fontSize: '16px'
-      }
-    },
-    legend: {
-      position: 'top',
-      horizontalAlign: 'center',
-      labels: {
-        colors: currentTheme.textColor
-      }
-    }
-  };
-
   // KPIs disponíveis
   const kpiList: { key: KPIKey, label: string, icon: JSX.Element, color: string, formatter?: (value: number) => string }[] = [
-    { key: "total", label: "Total de Registros", icon: <FiFileText />, color: "bg-blue-100 text-blue-800" },
-    { key: "active", label: "Empresas Ativas", icon: <FiCheck />, color: "bg-green-100 text-green-800" },
-    { key: "pending", label: "Pendentes", icon: <FiClock />, color: "bg-yellow-100 text-yellow-800" },
-    { key: "overdue", label: "Vencidos", icon: <FiCalendar />, color: "bg-red-100 text-red-800" },
-    { 
-      key: "revenue", 
-      label: "Faturamento Total", 
-      icon: <FiTrendingUp />, 
-      color: "bg-indigo-100 text-indigo-800",
-      formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    },
-    { key: "branches", label: "Filiais Únicas", icon: <FiHome />, color: "bg-purple-100 text-purple-800" },
-    { 
-      key: "taxValue", 
-      label: "Valor Total de ISS", 
-      icon: <FiDollarSign />, 
-      color: "bg-cyan-100 text-cyan-800",
+    { key: "total", label: "Total de Registros", icon: <FiFileText />, color: "bg-pink-100 text-pink-800" },
+    { key: "concluido", label: "Concluídos", icon: <FiCheck />, color: "bg-green-100 text-green-800" },
+    { key: "pendencia", label: "Pendência", icon: <BsFillExclamationTriangleFill />, color: "bg-red-100 text-red-800" },
+    { key: "erro_login", label: "Erro de login", icon: <MdNoAccounts />, color: "bg-orange-100 text-orange-800" },
+    { key: "modulo_nao_habilitado", label: "Módulo não habilitado", icon: <FiSettings />, color: "bg-indigo-100 text-indigo-800" },
+    { key: "sem_movimento", label: "Sem movimento", icon: <MdOutlineDoNotDisturbAlt />, color: "bg-gray-100 text-gray-800" },
+    { key: "sem_acesso", label: "Sem acesso", icon: <FiX />, color: "bg-cyan-100 text-cyan-800" },
+    {
+      key: "revenue",
+      label: "Faturamento Total",
+      icon: <FiTrendingUp />,
+      color: "bg-green-100 text-green-50", // Verde escuro de destaque
       formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     }
   ];
-
-  // Tipos de gráficos disponíveis
-  const chartTypes: { key: ChartType, label: string, icon: JSX.Element }[] = [
-    { key: "status", label: "Status das Empresas", icon: <FiPieChart /> },
-    { key: "revenue", label: "Evolução do Faturamento", icon: <FiTrendingUp /> },
-    { key: "municipality", label: "Distribuição por Município", icon: <FiMapPin /> },
-    { key: "state", label: "Distribuição por Estado", icon: <FiMapPin /> },
-    { key: "aliquota", label: "Alíquota Média", icon: <FiBarChart2 /> },
-    { key: "monthlyComparison", label: "Comparativo Mensal", icon: <FiLayers /> }
-  ];
-
-  // Próximos vencimentos (ordenados)
-  const upcomingDueDates = filteredDocs
-    .filter(doc => doc.vcto_guias_iss_proprio)
-    .map(doc => ({
-      id: doc.$id,
-      empresa: doc.empresa,
-      loja: doc.loja,
-      date: doc.vcto_guias_iss_proprio,
-      status: new Date(doc.vcto_guias_iss_proprio) < new Date() ? 'overdue' : 'upcoming',
-      valor: doc.vl_issqn || 0
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 5);
 
   // Notificação visual (toast/badge)
   useEffect(() => {
@@ -742,13 +470,13 @@ export default function DashboardPage() {
       toast.warn(
         <div>
           <p className="font-medium">Alerta de Pendências!</p>
-          <p>Há {stats.pending} registros pendentes e {stats.overdue} vencidos</p>
-          <Link href="/registros?status=Pendente" className="text-blue-600 underline">Ver detalhes</Link>
+          <p>Há {stats.pendencia} registros pendentes</p>
+          <Link href="/registros?status=PENDENTE" className="text-blue-600 underline">Ver detalhes</Link>
         </div>,
         { autoClose: 10000 }
       );
     }
-  }, [showAlert]);
+  }, [showAlert, stats.pendencia]);
 
   if (loading) {
     return (
@@ -770,6 +498,17 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Alertas e Notificações */}
+        {showAlert && (
+          <div className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-500'} border-l-4`}>
+            <FiBell size={20} />
+            <div>
+              <p className="font-medium">Atenção!</p>
+              <p>Há {stats.pendencia} registros pendentes. <Link href="/registros?status=PENDENTE" className="underline">Ver detalhes</Link></p>
+            </div>
+          </div>
+        )}
+
         {/* Configurações do Dashboard */}
         <div className={`p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${chartTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
@@ -787,7 +526,7 @@ export default function DashboardPage() {
                 <MenuItem value="dark">Escuro</MenuItem>
               </Select>
             </FormControl>
-            
+
             <FormControl fullWidth>
               <InputLabel>Agrupar por</InputLabel>
               <Select
@@ -800,7 +539,7 @@ export default function DashboardPage() {
                 <MenuItem value="year">Ano</MenuItem>
               </Select>
             </FormControl>
-            
+
             <div className="flex flex-col gap-2">
               <FormControlLabel
                 control={
@@ -825,17 +564,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* Alertas e Notificações */}
-        {showAlert && (
-          <div className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-500'} border-l-4`}>
-            <FiBell size={20} />
-            <div>
-              <p className="font-medium">Atenção!</p>
-              <p>Há {stats.pending} registros pendentes e {stats.overdue} vencidos. <Link href="/registros?status=Pendente" className="underline">Ver detalhes</Link></p>
-            </div>
-          </div>
-        )}
 
         {/* Filtro Avançado de Registros */}
         <div className={`p-6 rounded-xl shadow-sm border mb-8 ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -902,30 +630,11 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* KPIs Personalizáveis */}
+        {/* KPIs */}
         <div className="mb-8">
           <h2 className={`text-lg font-medium mb-2 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
             <FiBarChart2 /> Indicadores (KPIs)
           </h2>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {kpiList.map(kpi => (
-              <label key={kpi.key} className={`flex items-center gap-1 cursor-pointer ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedKPIs.includes(kpi.key)}
-                  onChange={() => {
-                    setSelectedKPIs(prev =>
-                      prev.includes(kpi.key)
-                        ? prev.filter(k => k !== kpi.key)
-                        : [...prev, kpi.key]
-                    );
-                  }}
-                  className="accent-blue-600"
-                />
-                <span className="text-sm">{kpi.label}</span>
-              </label>
-            ))}
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {kpiList.filter(kpi => selectedKPIs.includes(kpi.key)).map(kpi => (
               <div key={kpi.key} className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border ${kpi.color} ${chartTheme === 'dark' ? 'border-gray-700' : ''}`}>
@@ -941,233 +650,107 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Seleção de Gráficos */}
-        <div className={`p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${chartTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-            <FiBarChart2 /> Gráficos Disponíveis
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {chartTypes.map(chart => (
-              <label key={chart.key} className={`flex items-center gap-1 cursor-pointer ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedCharts.includes(chart.key)}
-                  onChange={() => {
-                    setSelectedCharts(prev =>
-                      prev.includes(chart.key)
-                        ? prev.filter(c => c !== chart.key)
-                        : [...prev, chart.key]
-                    );
-                  }}
-                  className="accent-blue-600"
-                />
-                <span className="text-sm">{chart.label}</span>
-              </label>
-            ))}
+        {/* Gráficos Avançados */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Status Donut */}
+          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+              <FiPie /> Distribuição dos Status
+            </h2>
+            {typeof window !== 'undefined' && (
+              <Chart
+                options={statusChartOptions}
+                series={statusChartSeries}
+                type="donut"
+                height={340}
+              />
+            )}
+            <div className="flex flex-wrap gap-3 mt-4 justify-center">
+              {STATUS_LABELS.map((s, idx) => (
+                <span key={s.key} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ background: s.color + "22", color: s.color }}>
+                  <span className="text-base">{s.icon}</span>
+                  <span className="font-medium">{s.label}</span>
+                  <span className="ml-1 text-gray-500">{statusChartSeries[idx]}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Gráfico de Status em Barra */}
+          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+              <FiBarChart /> Status por Quantidade
+            </h2>
+            {typeof window !== 'undefined' && (
+              <Chart
+                options={statusBarOptions}
+                series={[{ data: statusChartSeries }]}
+                type="bar"
+                height={340}
+              />
+            )}
           </div>
         </div>
 
-        {/* Gráficos Avançados */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Status */}
-          {selectedCharts.includes("status") && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiPieChart /> Status das Empresas
-              </h2>
-              {typeof window !== 'undefined' && (
-                <Chart
-                  options={statusChartOptions}
-                  series={statusChartSeries}
-                  type="donut"
-                  height={350}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Gráfico de Faturamento por Período */}
-          {selectedCharts.includes("revenue") && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiTrendingUp /> Evolução do Faturamento
-              </h2>
-              {typeof window !== 'undefined' && (
-                <Chart
-                  options={faturamentoOptions}
-                  series={[{ name: "Faturamento", data: faturamentoPeriodoData }]}
-                  type="line"
-                  height={350}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Gráfico de Distribuição por Município */}
-          {selectedCharts.includes("municipality") && municipioLabels.length > 0 && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiMapPin /> Distribuição por Município
-              </h2>
-              {typeof window !== 'undefined' ? (
-                <Chart
-                  options={municipioOptions}
-                  series={municipioData}
-                  type="pie"
-                  height={350}
-                />
-              ) : (
-                <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Sem dados suficientes para exibir o gráfico.</div>
-              )}
-            </div>
-          )}
-
-          {/* Gráfico de Distribuição por Estado */}
-          {selectedCharts.includes("state") && Object.keys(estados).length > 0 && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiMapPin /> Distribuição por Estado
-              </h2>
-              {typeof window !== 'undefined' ? (
-                <Chart
-                  options={stateChartOptions}
-                  series={[{ name: "Filiais", data: Object.values(estados) }]}
-                  type="bar"
-                  height={350}
-                />
-              ) : (
-                <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Sem dados suficientes para exibir o gráfico.</div>
-              )}
-            </div>
-          )}
-
-          {/* Gráfico de Alíquota Média */}
-          {selectedCharts.includes("aliquota") && estadosAliquota.length > 0 && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiBarChart2 /> Alíquota Média por Estado
-              </h2>
-              {typeof window !== 'undefined' ? (
-                <Chart
-                  options={aliquotaOptions}
-                  series={[{ name: "Alíquota Média", data: mediaAliquotaData }]}
-                  type="bar"
-                  height={350}
-                />
-              ) : (
-                <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Sem dados suficientes para exibir o gráfico.</div>
-              )}
-            </div>
-          )}
-
-          {/* Gráfico de Comparação Mensal */}
-          {selectedCharts.includes("monthlyComparison") && (
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} lg:col-span-2`}>
-              <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                <FiLayers /> Comparativo Mensal {currentYear} vs {currentYear - 1}
-              </h2>
-              {typeof window !== 'undefined' ? (
-                <Chart
-                  options={monthlyComparisonOptions}
-                  series={[
-                    { name: currentYear.toString(), data: comparisonData.currentYear },
-                    { name: (currentYear - 1).toString(), data: comparisonData.previousYear }
-                  ]}
-                  type="bar"
-                  height={350}
-                />
-              ) : (
-                <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Sem dados suficientes para exibir o gráfico.</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Alertas de Vencimento */}
-        <div className={`p-6 rounded-xl shadow-sm border mb-8 ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-            <FiCalendar /> Próximos Vencimentos
-          </h2>
-          <div className="space-y-3">
-            {upcomingDueDates.length > 0 ? (
-              upcomingDueDates.map((item) => (
-                <div key={item.id} className="flex items-start">
-                  <div className={`flex-shrink-0 p-2 rounded-lg ${item.status === 'overdue' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                    <FiCalendar size={20} />
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <div className="flex justify-between">
-                      <p className={`font-medium ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
-                        {item.empresa} {item.loja && `- ${item.loja}`}
-                      </p>
-                      <span className={`text-sm ${item.status === 'overdue' ? 'text-red-600' : chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {formatDate(item.date)} {item.status === 'overdue' && '(Vencido)'}
-                      </span>
-                    </div>
-                    <p className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Valor ISS: {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Nenhum vencimento próximo</p>
+        {/* Gráfico de Faturamento */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+              <FiTrendingUp /> Evolução do Faturamento
+            </h2>
+            {typeof window !== 'undefined' && (
+              <Chart
+                options={faturamentoOptions}
+                series={[{ name: "Faturamento", data: faturamentoPeriodoData }]}
+                type="area"
+                height={380}
+              />
             )}
           </div>
         </div>
 
         {/* Últimas Atividades */}
-        <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>Últimas Atividades</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className={`${chartTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <tr>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>Empresa</th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>Localidade</th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>Ação</th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>Responsável</th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>Datas</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${chartTheme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                {filteredDocs
-                  .sort((a, b) => new Date(b.$updatedAt).getTime() - new Date(a.$updatedAt).getTime())
-                  .slice(0, 5)
-                  .map((doc) => (
-                    <tr key={doc.$id} className={`${chartTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`font-medium ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{doc.empresa || '-'}</div>
-                        <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{doc.loja || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`font-medium ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{doc.estado || '-'}</div>
-                        <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{doc.municipio || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs rounded-full ${chartTheme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-                          {doc.$createdAt === doc.$updatedAt ? 'Criado' : 'Atualizado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>{doc.responsavel || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                          <span>
-                          Emissão: {doc.data_emissao ? formatDate(doc.data_emissao) : '-'}
-
-                          </span>
-                          <br />
-                          <span>
-                            Vencimento: {doc.vcto_guias_iss_proprio ? formatDate(doc.vcto_guias_iss_proprio) : '-'}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+        <div className="mb-8">
+          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+            <FiActivity /> Últimas Atividades
+          </h2>
+          <div className={`rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
+            {recentActivities.length === 0 && (
+              <div className="text-gray-400 text-center py-8">Nenhuma atividade recente encontrada.</div>
+            )}
+            <ul className="divide-y divide-gray-200">
+              {recentActivities.map((activity, idx) => (
+                <li key={activity.$id} className="flex items-center py-3 gap-4">
+                  <Tooltip title={activity.status || "Sem status"}>
+                    <span className="rounded-full p-2" style={{ background: (STATUS_LABELS.find(s => s.key === (activity.status?.toLowerCase() || ""))?.color || "#e5e7eb") + "22" }}>
+                      {STATUS_LABELS.find(s => s.key === (activity.status?.toLowerCase() || ""))?.icon || <FiFileText />}
+                    </span>
+                  </Tooltip>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{activity.empresa || "Empresa desconhecida"}</span>
+                      <span className="text-xs text-gray-500">{activity.loja && `Loja: ${activity.loja}`}</span>
+                      <span className="text-xs text-gray-400">{activity.municipio}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {activity.status && <span>Status: <span className="font-medium">{activity.status}</span></span>}
+                      {activity.faturamento && (
+                        <span className="ml-2">Faturamento: <span className="font-medium">{Number(activity.faturamento).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 whitespace-nowrap">
+                    {activity.$updatedAt ? formatDate(activity.$updatedAt) : ""}
+                  </div>
+                  <Link
+                    href={`/registros/edit/${activity.$id}`}
+                    className="ml-2 text-blue-600 hover:text-blue-900 transition-colors text-xs underline"
+                  >
+                    Ver detalhes
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </main>

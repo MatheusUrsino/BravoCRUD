@@ -35,6 +35,14 @@ export function RegistrosFilters({
   datePickerOpen,
   setDatePickerOpen,
 }: RegistrosFiltersProps) {
+  const handleFieldSelection = (value: string) => {
+    onFieldChange(value);
+    const selectedField = availableFields.find(field => field.value === value);
+    if (selectedField) {
+      // O tipo será determinado pelo campo selecionado
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg shadow mb-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -45,9 +53,10 @@ export function RegistrosFilters({
           <select
             id="filter-field"
             value={newFilterField}
-            onChange={(e) => onFieldChange(e.target.value)}
+            onChange={(e) => handleFieldSelection(e.target.value)}
             className="w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
+            <option value="all">Todos os campos</option>
             {availableFields.map((field) => (
               <option key={field.value} value={field.value}>
                 {field.label}
@@ -109,7 +118,7 @@ export function RegistrosFilters({
             if (filter.type === "date") {
               try {
                 const date = new Date(filter.value);
-                displayValue = date.toLocaleDateString('pt-BR')
+                displayValue = date.toLocaleDateString('pt-BR');
               } catch {
                 displayValue = filter.value;
               }

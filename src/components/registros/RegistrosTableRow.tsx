@@ -1,8 +1,22 @@
 import Link from "next/link";
-import { FiEdit2, FiTrash2, FiCheck, FiClock } from "react-icons/fi";
-import { formatCNPJ, formatCurrency, formatDate, formatPercentage } from "@/utils/formatters";
-import { Models } from "appwrite";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiCheckCircle,
+  FiClock,
+  FiSettings,
+  FiUserX,
+  FiMinusCircle
+} from "react-icons/fi";
+import {
+  MdNoAccounts,
+  MdOutlineDoNotDisturbAlt
+} from "react-icons/md";
+import { BsFillExclamationTriangleFill } from "react-icons/bs";
 import { FaFilePdf } from "react-icons/fa";
+import { formatCNPJ, formatCurrency } from "@/utils/formatters";
+import { Models } from "appwrite";
+import { JSX } from "react";
 
 interface RegistrosTableRowProps {
   data: Models.Document & {
@@ -15,107 +29,214 @@ interface RegistrosTableRowProps {
   onDownloadPdf: (fileId: string, fileName: string) => void;
 }
 
-// Função auxiliar para converter para número e tratar como centavos
+/**
+ * Converte valores monetários para centavos
+ */
 const parseToCents = (value: number | string | undefined): number | null => {
-  if (value === undefined || value === null || value === '') return null;
-  
-  const num = typeof value === 'string' 
-    ? parseFloat(value.replace(',', '.')) 
+  if (value === undefined || value === null || value === "") return null;
+
+  const num = typeof value === "string"
+    ? parseFloat(value.replace(",", "."))
     : value;
-  
+
   return isNaN(num) ? null : num / 100;
 };
 
+/**
+ * Mapeamento de status para cores, ícones e labels
+ */
+const STATUS_CONFIG = {
+  CONCLUIDO: {
+    color: "bg-green-100 text-green-800",
+    text: "Concluído",
+    icon: <FiCheckCircle className="shrink-0" size={16} />,
+  },
+  PENDENTE: {
+    color: "bg-yellow-100 text-yellow-800",
+    text: "Pendente",
+    icon: <FiClock className="shrink-0" size={16} />,
+  },
+  ERRO_LOGIN: {
+    color: "bg-orange-100 text-orange-800",
+    text: "Erro de login",
+    icon: <MdNoAccounts className="shrink-0" size={16} />,
+  },
+  MODULO_NAO_HABILITADO: {
+    color: "bg-gray-100 text-gray-800",
+    text: "Módulo não habilitado",
+    icon: <FiSettings className="shrink-0" size={16} />,
+  },
+  SEM_ACESSO: {
+    color: "bg-red-100 text-red-800",
+    text: "Sem acesso",
+    icon: <FiUserX className="shrink-0" size={16} />,
+  },
+  PENDENCIA: {
+    color: "bg-red-100 text-red-800",
+    text: "Pendência",
+    icon: <BsFillExclamationTriangleFill className="shrink-0" size={14} />,
+  },
+  SEM_MOVIMENTO: {
+    color: "bg-orange-100 text-orange-800",
+    text: "Sem movimento",
+    icon: <MdOutlineDoNotDisturbAlt className="shrink-0" size={16} />,
+  },
+  DEFAULT: {
+    color: "bg-gray-100 text-gray-800",
+    text: "Desconhecido",
+    icon: <FiMinusCircle className="shrink-0" size={16} />,
+  },
+} as const;
+// Sugestão para sua função de download no front-end
+async function handleDownloadPdf(fileId: string) {
+  const res = await fetch(`/api/registros/download?fileId=${fileId}`);
+  const data = await res.json();
+
+  if (data.success && data.url && data.filename) {
+    const fileRes = await fetch(data.url);
+    const blob = await fileRes.blob();
+
+    // Cria um link temporário para download
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = data.filename; // Usa o nome real do bucket
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  } else {
+    alert('Erro ao baixar arquivo');
+  }
+}
 export const RegistrosTableRow = ({
   data,
+  isExpanded,
   onExpand,
   onSelectForDeletion,
   onDownloadPdf,
 }: RegistrosTableRowProps) => {
+  // Obtém a configuração do status ou usa o padrão
+  const statusConfig = data.status
+    ? STATUS_CONFIG[data.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.DEFAULT
+    : STATUS_CONFIG.DEFAULT;
+
   return (
     <tr
-      key={data.$id}
-      className="hover:bg-gray-50 transition-colors cursor-pointer"
+      className={`
+        transition-colors cursor-pointer 
+        hover:bg-gray-50 
+        ${isExpanded ? "bg-blue-50" : ""}
+      `}
       onClick={() => onExpand(data.$id)}
     >
+      {/* Coluna Empresa */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Empresa</span>
-          <span className="font-medium text-gray-900">{data.empresa || '-'}</span>
+          <span className="font-medium text-gray-900 truncate max-w-[180px]">
+            {data.empresa || "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna Loja */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Loja</span>
-          <span className="text-gray-900">{data.loja || '-'}</span>
+          <span className="text-gray-900">
+            {data.loja || "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna Tipo */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">I.M</span>
-          <span className="text-gray-900">{data.im || '-'}</span>
+          <span className="text-xs text-gray-500">Tipo</span>
+          <span className="text-gray-900">
+            {data.tipo_registro === "PRESTADO" ? "Prestado" :
+              data.tipo_registro === "TOMADO" ? "Tomado" : "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna CNPJ Tomador */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Município</span>
-          <span className="text-gray-900">{data.municipio || '-'}</span>
+          <span className="text-xs text-gray-500">CNPJ Tomador</span>
+          <span className="text-gray-900">
+            {data.cnpj_tomador ? formatCNPJ(data.cnpj_tomador) : "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna CNPJ Prestador */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Base Cálculo</span>
-          <span className="text-gray-900">{data.base_calculo ? formatCurrency(parseToCents(data.base_calculo)!) : '-'}</span>
+          <span className="text-xs text-gray-500">CNPJ Prestador</span>
+          <span className="text-gray-900">
+            {data.cnpj_prestador ? formatCNPJ(data.cnpj_prestador) : "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna Número da Nota */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Alíquota</span>
-          <span className="text-gray-900">{data.aliquota ? formatPercentage(data.aliquota) : '-'}</span>
+          <span className="text-xs text-gray-500">Nº Nota</span>
+          <span className="text-gray-900">
+            {data.numero_nota || "-"}
+          </span>
         </div>
       </td>
+
+      {/* Coluna Valor ISSQN */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Valor ISSQN</span>
-          <span className="text-gray-900">{data.vl_issqn ? formatCurrency(parseToCents(data.vl_issqn)!) : '-'}</span>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Vencimento</span>
           <span className="text-gray-900">
-            {data.vcto_guias_iss_proprio ? formatDate(data.vcto_guias_iss_proprio) : '-'}
+            {data.vl_issqn ? formatCurrency(parseToCents(data.vl_issqn)!) : "-"}
           </span>
         </div>
       </td>
+
+      {/* Coluna Status */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Status</span>
-          <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${data.status === 'Concluído'
-              ? 'bg-green-200 text-green-800'
-              : 'bg-red-200 text-red-800'
-            }`}>
-            {data.status === 'Concluído' ? (
-              <FiCheck size={14} />
-            ) : (
-              <FiClock size={14} />
-            )}
-            {data.status === 'Concluído' ? 'Concluído' : 'Pendente'}
+          <span
+            className={`
+              px-2 py-1 text-xs rounded-full 
+              flex items-center gap-1 w-fit
+              ${statusConfig.color}
+            `}
+            title={statusConfig.text}
+          >
+            {statusConfig.icon}
+            <span className="truncate max-w-[100px]">
+              {statusConfig.text}
+            </span>
           </span>
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-end space-x-2">
+
+      {/* Coluna Ações */}
+      <td
+        className="px-6 py-4 whitespace-nowrap text-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-end items-center space-x-2">
+          {/* Botões de PDF */}
           {(data.pdf_anexo1_id || data.pdf_anexo2_id) && (
             <div className="flex items-center space-x-1 border-r border-gray-200 pr-2">
               {data.pdf_anexo1_id && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadPdf(data.pdf_anexo1_id!, `Anexo1_${data.empresa}.pdf`);
+                    handleDownloadPdf(data.pdf_anexo1_id!);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  title="Baixar Guia de Recolhimento"
+                  aria-label="Baixar Guia de Recolhimento"
                 >
                   <FaFilePdf size={16} />
                 </button>
@@ -124,31 +245,35 @@ export const RegistrosTableRow = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadPdf(data.pdf_anexo2_id!, `Anexo2_${data.empresa}.pdf`);
+                    handleDownloadPdf(data.pdf_anexo2_id!);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  title="Baixar protocolo"
+                  aria-label="Baixar protocolo"
                 >
                   <FaFilePdf size={16} />
                 </button>
               )}
             </div>
           )}
+
+          {/* Botão Editar */}
           <Link
             href={`/registros/edit/${data.$id}`}
-            className="text-blue-600 hover:text-blue-900 transition-colors p-1"
-            title="Editar"
+            className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+            aria-label="Editar"
             onClick={(e) => e.stopPropagation()}
           >
             <FiEdit2 size={18} />
           </Link>
+
+          {/* Botão Excluir */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onSelectForDeletion(data.$id);
             }}
-            className="text-red-600 hover:text-red-900 transition-colors p-1"
-            title="Excluir"
+            className="text-red-600 hover:text-red-800 transition-colors p-1"
+            aria-label="Excluir"
           >
             <FiTrash2 size={18} />
           </button>

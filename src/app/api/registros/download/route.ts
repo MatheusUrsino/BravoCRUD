@@ -1,30 +1,49 @@
-// app/api/registros/download/route.ts
 import { NextResponse } from 'next/server';
 import { Storage } from 'appwrite';
-import client from '../../../../config/appwrite.config';
+import client from '@/config/appwrite.config';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
-    
+
     if (!fileId) {
         return NextResponse.json(
-            { error: 'fileId é obrigatório' },
+            { success: false, error: 'fileId é obrigatório' },
             { status: 400 }
         );
     }
 
     try {
         const storage = new Storage(client);
-        const bucketId = process.env.NEXT_APPWRITE_BUCKET_ID as string;
+        const bucketId = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID;
+
+        if (!bucketId) {
+            return NextResponse.json(
+                { success: false, error: 'Bucket ID não configurado' },
+                { status: 500 }
+            );
+        }
+
+        // Verifica se o arquivo existe
+        await storage.getFile(bucketId, fileId);
         
-        // Gera URL de visualização do arquivo
-        const fileUrl = storage.getFileView(bucketId, fileId);
-        
-        return NextResponse.json({ url: fileUrl.toString() });
+        const fileInfo = await storage.getFile(bucketId, fileId);
+
+        // Gera URL de download do arquivo
+        const fileUrl = storage.getFileDownload(bucketId, fileId);
+
+        return NextResponse.json({
+            success: true,
+            url: fileUrl.toString(),
+            filename: fileInfo.name // nome original do arquivo
+        });
     } catch (error: any) {
+        console.error('Erro ao recuperar arquivo:', error);
         return NextResponse.json(
-            { error: 'Erro ao recuperar arquivo' },
+            {
+                success: false,
+                error: error.message || 'Erro ao recuperar arquivo'
+            },
             { status: 500 }
         );
     }

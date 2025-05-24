@@ -20,6 +20,42 @@ interface CurrentFile {
     url: string;
 }
 
+interface RegisterFormData {
+    empresa: string;
+    loja: string | number;
+    docSap: string;
+    tipo_registro: string;
+    cnpj_tomador: string;
+    municipio_tomador: string;
+    estado_tomador: string;
+    im_tomador: string;
+    cnpj_prestador: string;
+    municipio_prestador: string;
+    estado_prestador: string;
+    im_prestador: string;
+    numero_nota: string;
+    data_nota: string;
+    codigo_servico: string;
+    faturamento: string | number;
+    base_calculo: string | number;
+    aliquota: string | number;
+    multa: string | number;
+    juros: string | number;
+    taxa: string | number;
+    vl_issqn: string | number;
+    iss_retido: string;
+    historico: string | null;
+    status: string | null;
+    status_empresa: string;
+    vcto_guias_iss_proprio: string;
+    data_emissao: string;
+    qtd: string | number | null;
+    responsavel: string;
+    teamId: string;
+    pdf_anexo1_id: string;
+    pdf_anexo2_id: string;
+}
+
 const EditRegisterPage = () => {
     const { id } = useParams<{ id: string }>();
     const registersService = RegistersService.getInstance();
@@ -35,26 +71,22 @@ const EditRegisterPage = () => {
         throw new Error("NEXT_PUBLIC_APPWRITE_BUCKET_ID não está configurado");
     }
 
-    const [register, setRegister] = useState({
+    const [register, setRegister] = useState<RegisterFormData>({
         empresa: "",
         loja: "",
         docSap: "",
         tipo_registro: "",
-        // Tomador
         cnpj_tomador: "",
         municipio_tomador: "",
         estado_tomador: "",
         im_tomador: "",
-        // Prestador
         cnpj_prestador: "",
         municipio_prestador: "",
         estado_prestador: "",
         im_prestador: "",
-        // Nota
         numero_nota: "",
         data_nota: "",
         codigo_servico: "",
-        // Financeiro e outros
         faturamento: "",
         base_calculo: "",
         aliquota: "",
@@ -63,12 +95,12 @@ const EditRegisterPage = () => {
         taxa: "",
         vl_issqn: "",
         iss_retido: "",
-        historico: "",
-        status: "",
+        historico: null,
+        status: null,
         status_empresa: "",
         vcto_guias_iss_proprio: "",
         data_emissao: "",
-        qtd: "",
+        qtd: null,
         responsavel: "",
         teamId: "",
         pdf_anexo1_id: "",
@@ -83,11 +115,9 @@ const EditRegisterPage = () => {
         pdf_anexo2: null
     });
 
-    // Modal de confirmação
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [fileToRemove, setFileToRemove] = useState<"pdf_anexo1" | "pdf_anexo2" | null>(null);
 
-    // Função para formatar valores monetários
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
@@ -95,7 +125,6 @@ const EditRegisterPage = () => {
         });
     };
 
-    // Função robusta para converter valores do formulário para número
     const parseFormValue = (value: string | null): number => {
         if (!value) return 0;
         return parseFloat(value
@@ -106,13 +135,12 @@ const EditRegisterPage = () => {
         ) || 0;
     };
 
-    // Cálculo completo do ISSQN
-    const calculateVlIssqn = (currentValues: Partial<typeof register> = register) => {
-        const base = parseFormValue(currentValues.base_calculo || '0');
-        const aliquota = parseFormValue(currentValues.aliquota || '0');
-        const multa = parseFormValue(currentValues.multa || '0');
-        const juros = parseFormValue(currentValues.juros || '0');
-        const taxa = parseFormValue(currentValues.taxa || '0');
+    const calculateVlIssqn = (currentValues: Partial<RegisterFormData> = register) => {
+        const base = parseFormValue(currentValues.base_calculo?.toString() || '0');
+        const aliquota = parseFormValue(currentValues.aliquota?.toString() || '0');
+        const multa = parseFormValue(currentValues.multa?.toString() || '0');
+        const juros = parseFormValue(currentValues.juros?.toString() || '0');
+        const taxa = parseFormValue(currentValues.taxa?.toString() || '0');
 
         const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
 
@@ -122,7 +150,6 @@ const EditRegisterPage = () => {
         };
     };
 
-    // Atualiza o cálculo sempre que os campos relevantes mudam
     useEffect(() => {
         const calculatedVlIssqn = calculateVlIssqn();
         setRegister(prev => ({
@@ -131,11 +158,9 @@ const EditRegisterPage = () => {
         }));
     }, [register.base_calculo, register.aliquota, register.multa, register.juros, register.taxa]);
 
-    // Autocompletar data de emissão igual ao AddPage
     useEffect(() => {
         if (!register.data_emissao) {
             const now = new Date();
-            // Ajusta para o fuso local e pega YYYY-MM-DD
             const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
                 .toISOString()
                 .split('T')[0];
@@ -155,10 +180,9 @@ const EditRegisterPage = () => {
         setLoading(true);
 
         try {
-            // Validação de campos obrigatórios
             const requiredFields = [
-                "empresa", "loja", "docSap", "cnpj", "im", "municipio",
-                "status_empresa", "estado", "vcto_guias_iss_proprio", "data_emissao"
+                "empresa", "loja", "docSap", "cnpj_tomador", "im_tomador", "municipio_tomador",
+                "status_empresa", "estado_tomador", "vcto_guias_iss_proprio", "data_emissao"
             ];
 
             for (const field of requiredFields) {
@@ -167,7 +191,6 @@ const EditRegisterPage = () => {
                 }
             }
 
-            // Cálculo FINAL com os valores mais recentes
             const finalCalculation = calculateVlIssqn({
                 ...register,
                 base_calculo: formData.get('base_calculo')?.toString() || '',
@@ -179,7 +202,6 @@ const EditRegisterPage = () => {
                 vl_issqn: ''
             });
 
-            // Obter dados da conta
             const account = await authService.getAccount();
             const teamId = account.teamId;
 
@@ -187,7 +209,6 @@ const EditRegisterPage = () => {
                 throw new Error("Usuário não está associado a nenhum time");
             }
 
-            // Processamento de arquivos
             const pdfAnexo1 = formData.get("pdf_anexo1");
             const pdfAnexo2 = formData.get("pdf_anexo2");
             const hasFiles = (pdfAnexo1 instanceof File && pdfAnexo1.size > 0) ||
@@ -220,31 +241,26 @@ const EditRegisterPage = () => {
                 }
             }
 
-            // Formatar data de vencimento
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
             const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
 
             // Criar payload com tipos corretos
             const payload = {
                 empresa: formData.get("empresa")?.toString() || '',
-                loja: Number(formData.get("loja")),
+                loja: Number(formData.get("loja") || 0),
                 docSap: formData.get("docSap")?.toString() || '',
                 tipo_registro: formData.get("tipo_registro")?.toString() || '',
-                // Tomador
                 cnpj_tomador: formData.get("cnpj_tomador")?.toString() || '',
                 municipio_tomador: formData.get("municipio_tomador")?.toString() || '',
                 estado_tomador: formData.get("estado_tomador")?.toString() || '',
                 im_tomador: formData.get("im_tomador")?.toString() || '',
-                // Prestador
                 cnpj_prestador: formData.get("cnpj_prestador")?.toString() || '',
                 municipio_prestador: formData.get("municipio_prestador")?.toString() || '',
                 estado_prestador: formData.get("estado_prestador")?.toString() || '',
                 im_prestador: formData.get("im_prestador")?.toString() || '',
-                // Nota
                 numero_nota: formData.get("numero_nota")?.toString() || '',
                 data_nota: formData.get("data_nota")?.toString() || '',
                 codigo_servico: formData.get("codigo_servico")?.toString() || '',
-                // Financeiro
                 faturamento: parseFormValue(formData.get("faturamento")?.toString() || ''),
                 base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || ''),
                 aliquota: parseFormValue(formData.get("aliquota")?.toString() || ''),
@@ -253,7 +269,6 @@ const EditRegisterPage = () => {
                 taxa: parseFormValue(formData.get("taxa")?.toString() || ''),
                 vl_issqn: finalCalculation.raw,
                 iss_retido: formData.get("iss_retido")?.toString() || '',
-                // Outros
                 status_empresa: formData.get("status_empresa")?.toString() || '',
                 status: formData.get("status")?.toString() || null,
                 historico: formData.get("historico")?.toString() || null,
@@ -283,7 +298,6 @@ const EditRegisterPage = () => {
             const fileId = field === 'pdf_anexo1' ? register.pdf_anexo1_id : register.pdf_anexo2_id;
             if (!fileId) return;
 
-            // Remove do Appwrite Storage
             await storage.deleteFile(bucketId, fileId);
 
             setCurrentFiles(prev => ({
@@ -337,7 +351,6 @@ const EditRegisterPage = () => {
                         };
                     }
 
-                    // Calcular vl_issqn inicial
                     const initialVlIssqn = calculateVlIssqn({
                         ...registerData,
                         base_calculo: registerData.base_calculo?.toString() || '',
@@ -348,26 +361,21 @@ const EditRegisterPage = () => {
                     });
 
                     setRegister({
-                        ...registerData,
                         empresa: registerData.empresa?.toString() || "",
                         loja: registerData.loja?.toString() || "",
                         docSap: registerData.docSap || "",
                         tipo_registro: registerData.tipo_registro || "",
-                        // Tomador
                         cnpj_tomador: registerData.cnpj_tomador || "",
                         municipio_tomador: registerData.municipio_tomador || "",
                         estado_tomador: registerData.estado_tomador || "",
                         im_tomador: registerData.im_tomador || "",
-                        // Prestador
                         cnpj_prestador: registerData.cnpj_prestador || "",
                         municipio_prestador: registerData.municipio_prestador || "",
                         estado_prestador: registerData.estado_prestador || "",
                         im_prestador: registerData.im_prestador || "",
-                        // Nota
                         numero_nota: registerData.numero_nota || "",
                         data_nota: registerData.data_nota?.split('T')[0] || "",
                         codigo_servico: registerData.codigo_servico || "",
-                        // Financeiro e outros
                         faturamento: registerData.faturamento?.toString() || "",
                         base_calculo: registerData.base_calculo?.toString() || "",
                         aliquota: registerData.aliquota?.toString() || "",
@@ -376,12 +384,12 @@ const EditRegisterPage = () => {
                         taxa: registerData.taxa?.toString() || "",
                         vl_issqn: initialVlIssqn.formatted,
                         iss_retido: registerData.iss_retido || "",
-                        historico: registerData.historico || "",
-                        status: registerData.status || "",
+                        historico: registerData.historico || null,
+                        status: registerData.status || null,
                         status_empresa: registerData.status_empresa || "",
                         vcto_guias_iss_proprio: registerData.vcto_guias_iss_proprio?.split('T')[0] || "",
                         data_emissao: registerData.data_emissao?.split('T')[0] || "",
-                        qtd: registerData.qtd?.toString() || "",
+                        qtd: registerData.qtd?.toString() || null,
                         responsavel: registerData.responsavel || "",
                         teamId: registerData.teamId || "",
                         pdf_anexo1_id: registerData.pdf_anexo1_id || "",
@@ -452,7 +460,7 @@ const EditRegisterPage = () => {
                                         name: "loja",
                                         label: "LOJA",
                                         type: "number",
-                                        value: register.loja,
+                                        value: register.loja?.toString() ?? "",
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
@@ -477,7 +485,7 @@ const EditRegisterPage = () => {
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
-                                
+
                                     // --- Tomador ---
                                     { type: "section", label: "Dados do Tomador" },
                                     {
@@ -517,7 +525,7 @@ const EditRegisterPage = () => {
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
-                                
+
                                     // --- Prestador ---
                                     { type: "section", label: "Dados do Prestador" },
                                     {
@@ -557,7 +565,7 @@ const EditRegisterPage = () => {
                                         required: false,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
-                                
+
                                     // --- Nota ---
                                     { type: "section", label: "Dados da Nota" },
                                     {
@@ -584,7 +592,7 @@ const EditRegisterPage = () => {
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
-                                
+
                                     // --- Financeiro ---
                                     { type: "section", label: "Dados Financeiros" },
                                     {
@@ -664,7 +672,7 @@ const EditRegisterPage = () => {
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
-                                
+
                                     // --- Outros ---
                                     { type: "section", label: "Outros Dados" },
                                     {
@@ -687,8 +695,14 @@ const EditRegisterPage = () => {
                                         value: register.status,
                                         options: [
                                             { value: "", label: "Selecione..." },
-                                            { value: "Concluído", label: "Concluído" },
-                                            { value: "Pendente", label: "Pendente" }
+                                            { value: "CONCLUIDO", label: "Concluído" },
+
+                                            { value: "PENDENTE", label: "Pendente" },
+                                            { value: "ERRO_LOGIN", label: "Erro de login" },
+                                            { value: "MODULO_NAO_HABILITADO", label: "Módulo de escrituração não habilitado" },
+                                            { value: "SEM_ACESSO", label: "Sem acesso" },
+                                            { value: "PENDENCIA", label: "Pendência" },
+                                            { value: "SEM_MOVIMENTO", label: "Sem movimento" }
                                         ],
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },

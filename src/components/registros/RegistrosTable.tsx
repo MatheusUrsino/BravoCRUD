@@ -1,8 +1,7 @@
-import { FiX } from "react-icons/fi";
+import { FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { RegistrosTableRow } from "./RegistrosTableRow";
 import { RegistrosTableExpandedRow } from "./RegistrosTableExpandedRow";
-import { Filter } from "@/types/registros"; // Defina este tipo
-import { Link } from "lucide-react";
+import { Filter } from "@/types/registros";
 import React from "react";
 
 interface RegistrosTableProps {
@@ -18,30 +17,129 @@ interface RegistrosTableProps {
   onDownloadPdf: (fileId: string, fileName: string) => void;
 }
 
+// Função para comparar valores para ordenação
+const compareValues = (a: any, b: any, key: string, direction: 'ascending' | 'descending') => {
+  // Tratamento especial para valores monetários e numéricos
+  const numericFields = ['faturamento', 'base_calculo', 'aliquota', 'multa', 'juros', 'taxa', 'vl_issqn', 'qtd'];
+  
+  let valueA = a[key];
+  let valueB = b[key];
+
+  if (numericFields.includes(key)) {
+    valueA = parseFloat(String(valueA || 0).replace(',', '.'));
+    valueB = parseFloat(String(valueB || 0).replace(',', '.'));
+  } else if (key.includes('data') || key.includes('vcto') || key.includes('emissao')) {
+    // Para campos de data
+    valueA = valueA ? new Date(valueA).getTime() : 0;
+    valueB = valueB ? new Date(valueB).getTime() : 0;
+  } else {
+    // Para strings
+    valueA = String(valueA || '').toLowerCase();
+    valueB = String(valueB || '').toLowerCase();
+  }
+
+  if (valueA < valueB) {
+    return direction === 'ascending' ? -1 : 1;
+  }
+  if (valueA > valueB) {
+    return direction === 'ascending' ? 1 : -1;
+  }
+  return 0;
+};
+
 export const RegistrosTable = ({
   filteredDocuments,
   filters,
+  sortConfig,
   expandedRow,
   userNames,
+  onRequestSort,
   onExpandRow,
   onSelectForDeletion,
   onClearFilters,
   onDownloadPdf,
 }: RegistrosTableProps) => {
+  const getSortIcon = (key: string) => {
+    if (!sortConfig) return null;
+    if (sortConfig.key !== key) return null;
+    
+    return sortConfig.direction === 'ascending' 
+      ? <FiChevronUp className="ml-1 inline" /> 
+      : <FiChevronDown className="ml-1 inline" />;
+  };
+
+  // Ordena os documentos conforme a configuração
+  const sortedDocuments = React.useMemo(() => {
+    if (!sortConfig) return filteredDocuments;
+    
+    return [...filteredDocuments].sort((a, b) => {
+      return compareValues(a, b, sortConfig.key, sortConfig.direction);
+    });
+  }, [filteredDocuments, sortConfig]);
 
   return (
     <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          {/* Cabeçalho da tabela */}
           <thead className="bg-gray-50">
             <tr>
-              {/* Colunas do cabeçalho */}
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('empresa')}
+              >
+                Empresa {getSortIcon('empresa')}
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('loja')}
+              >
+                Loja {getSortIcon('loja')}
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('tipo_registro')}
+              >
+                Tipo {getSortIcon('tipo_registro')}
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('cnpj_tomador')}
+              >
+                CNPJ Tomador {getSortIcon('cnpj_tomador')}
+              </th>
+                <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('cnpj_tomador')}
+              >
+                CNPJ Prestador {getSortIcon('cnpj_tomador')}
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('numero_nota')}
+              >
+                Nº Nota {getSortIcon('numero_nota')}
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('vl_issqn')}
+              >
+                Valor ISSQN {getSortIcon('vl_issqn')}
+              </th>
+        
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => onRequestSort('status')}
+              >
+                Status {getSortIcon('status')}
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ações
+              </th>
             </tr>
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredDocuments.map((data) => (
+            {sortedDocuments.map((data) => (
               <React.Fragment key={data.$id}>
                 <RegistrosTableRow
                   data={data}
@@ -62,7 +160,7 @@ export const RegistrosTable = ({
         </table>
       </div>
 
-      {filteredDocuments.length === 0 && (
+      {sortedDocuments.length === 0 && (
         <div className="text-center py-12">
           <h3 className="text-lg font-medium text-gray-900">
             {filters.length > 0 ? "Nenhum registro encontrado com os filtros aplicados" : "Nenhum registro encontrado"}
@@ -76,9 +174,7 @@ export const RegistrosTable = ({
                 <FiX className="inline mr-1" /> Limpar filtros
               </button>
             ) : (
-              <Link href="/registros/new" className="text-blue-600 hover:underline">
-                Adicione uma nova filial para começar
-              </Link>
+              "Adicione uma nova filial para começar"
             )}
           </p>
         </div>

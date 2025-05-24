@@ -9,8 +9,8 @@ interface IField {
     name?: string
     label?: string
     type: string
-    value?: string
-    placeholder?: string
+    value?: string | number | null
+ placeholder?: string
     required?: boolean
     options?: Array<{ value: string; label: string }>
     pattern?: string

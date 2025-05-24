@@ -4,7 +4,7 @@ import { Client } from "appwrite";
 const client = new Client();
 
 // Defina valores padrão para desenvolvimento
-const endpoint = process.env.NEXT_PUBLIC_APPWRITE_URL || 'https://cloud.appwrite.io/v1';
+const endpoint = process.env.NEXT_PUBLIC_APPWRITE_URL || 'https://fra.cloud.appwrite.io/v1';
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || 'default-project-id';
 
 // Verificação adicional de segurança

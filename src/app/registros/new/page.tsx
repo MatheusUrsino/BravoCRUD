@@ -13,8 +13,13 @@ const statusEmpresaOptions = [
 ];
 
 const statusOptions = [
+    { value: "CONCLUIDO", label: "Concluído" },
     { value: "PENDENTE", label: "Pendente" },
-    { value: "CONCLUIDO", label: "Concluído" }
+    { value: "ERRO_LOGIN", label: "Erro de login" },
+    { value: "MODULO_NAO_HABILITADO", label: "Módulo de escrituração não habilitado" },
+    { value: "SEM_ACESSO", label: "Sem acesso" },
+    { value: "PENDENCIA", label: "Pendência" },
+    { value: "SEM_MOVIMENTO", label: "Sem movimento" }
 ];
 
 const AddRegisterPage = () => {
@@ -127,21 +132,15 @@ const AddRegisterPage = () => {
 
     const handleSubmit = async (formData: FormData) => {
         setLoading(true);
-
+        console.log(formData.get('loja'))
         try {
             // Validação de campos obrigatórios
             const requiredFields = [
-                "empresa", "loja", "docSap",
-                "tipo_registro",
-                // Tomador
+                "empresa", "loja", "docSap", "tipo_registro",
                 "cnpj_tomador", "municipio_tomador", "estado_tomador", "im_tomador",
-                // Prestador
                 "cnpj_prestador", "municipio_prestador", "estado_prestador",
-                // Nota
                 "numero_nota", "data_nota", "codigo_servico",
-                // Financeiro
                 "iss_retido",
-                // Outros
                 "status_empresa", "vcto_guias_iss_proprio"
             ];
 
@@ -150,7 +149,6 @@ const AddRegisterPage = () => {
                     throw new Error(`Por favor, preencha o campo: ${field.toUpperCase()}`);
                 }
             }
-
             // Cálculo FINAL com os valores mais recentes
             const finalCalculation = calculateVlIssqn({
                 base_calculo: formData.get('base_calculo')?.toString() || '',
@@ -182,12 +180,12 @@ const AddRegisterPage = () => {
 
             // Formatar data de vencimento
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
-            const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
+            const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : "";
 
             // Criar payload com tipos corretos
             const payload = {
                 empresa: formData.get("empresa")?.toString() || '',
-                loja: Number(formData.get("loja")),                docSap: formData.get("docSap")?.toString() || '',
+                loja: Number(formData.get("loja")), docSap: formData.get("docSap")?.toString() || '',
                 // Tomador
                 cnpj_tomador: formData.get("cnpj_tomador")?.toString() || '',
                 municipio_tomador: formData.get("municipio_tomador")?.toString() || '',
@@ -295,295 +293,295 @@ const AddRegisterPage = () => {
                             </p>
                         </div>
                         <Form
-    loading={loading}
-    onSubmit={handleSubmit}
-    fields={[
-        { type: "section", label: "Dados Gerais" },
-        {
-            name: "empresa",
-            label: "EMPRESA",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "loja",
-            label: "LOJA",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "docSap",
-            label: "DOC SAP",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "tipo_registro",
-            label: "TIPO DE REGISTRO",
-            type: "select",
-            options: [
-                { value: "", label: "Selecione" },
-                { value: "PRESTADO", label: "Prestado" },
-                { value: "TOMADO", label: "Tomado" }
-            ],
-            required: true,
-            containerClass: "col-span-1"
-        },
+                            loading={loading}
+                            onSubmit={handleSubmit}
+                            fields={[
+                                { type: "section", label: "Dados Gerais" },
+                                {
+                                    name: "empresa",
+                                    label: "EMPRESA",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "loja",
+                                    label: "LOJA",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "docSap",
+                                    label: "DOC SAP",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "tipo_registro",
+                                    label: "TIPO DE REGISTRO",
+                                    type: "select",
+                                    options: [
+                                        { value: "", label: "Selecione" },
+                                        { value: "PRESTADO", label: "Prestado" },
+                                        { value: "TOMADO", label: "Tomado" }
+                                    ],
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
 
-        { type: "section", label: "Dados do Tomador" },
-        {
-            name: "cnpj_tomador",
-            label: "CNPJ TOMADOR",
-            type: "text",
-            mask: "cnpj",
-            placeholder: "00.000.000/0000-00",
-            required: true,
-            maxLength: 18,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "municipio_tomador",
-            label: "MUNICÍPIO TOMADOR",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "estado_tomador",
-            label: "ESTADO TOMADOR (UF)",
-            type: "text",
-            maxLength: 2,
-            placeholder: "Ex: SP",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "im_tomador",
-            label: "INSCRIÇÃO MUNICIPAL TOMADOR",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
+                                { type: "section", label: "Dados do Tomador" },
+                                {
+                                    name: "cnpj_tomador",
+                                    label: "CNPJ TOMADOR",
+                                    type: "text",
+                                    mask: "cnpj",
+                                    placeholder: "00.000.000/0000-00",
+                                    required: true,
+                                    maxLength: 18,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "municipio_tomador",
+                                    label: "MUNICÍPIO TOMADOR",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "estado_tomador",
+                                    label: "ESTADO TOMADOR (UF)",
+                                    type: "text",
+                                    maxLength: 2,
+                                    placeholder: "Ex: SP",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "im_tomador",
+                                    label: "INSCRIÇÃO MUNICIPAL TOMADOR",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
 
-        { type: "section", label: "Dados do Prestador" },
-        {
-            name: "cnpj_prestador",
-            label: "CNPJ PRESTADOR",
-            type: "text",
-            mask: "cnpj",
-            placeholder: "00.000.000/0000-00",
-            required: true,
-            maxLength: 18,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "municipio_prestador",
-            label: "MUNICÍPIO PRESTADOR",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "estado_prestador",
-            label: "ESTADO PRESTADOR (UF)",
-            type: "text",
-            maxLength: 2,
-            placeholder: "Ex: SP",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "im_prestador",
-            label: "INSCRIÇÃO MUNICIPAL PRESTADOR",
-            type: "text",
-            required: false,
-            containerClass: "col-span-1"
-        },
+                                { type: "section", label: "Dados do Prestador" },
+                                {
+                                    name: "cnpj_prestador",
+                                    label: "CNPJ PRESTADOR",
+                                    type: "text",
+                                    mask: "cnpj",
+                                    placeholder: "00.000.000/0000-00",
+                                    required: true,
+                                    maxLength: 18,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "municipio_prestador",
+                                    label: "MUNICÍPIO PRESTADOR",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "estado_prestador",
+                                    label: "ESTADO PRESTADOR (UF)",
+                                    type: "text",
+                                    maxLength: 2,
+                                    placeholder: "Ex: SP",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "im_prestador",
+                                    label: "INSCRIÇÃO MUNICIPAL PRESTADOR",
+                                    type: "text",
+                                    required: false,
+                                    containerClass: "col-span-1"
+                                },
 
-        { type: "section", label: "Dados da Nota" },
-        {
-            name: "numero_nota",
-            label: "NÚMERO DA NOTA",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "data_nota",
-            label: "DATA DA NOTA",
-            type: "date",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "codigo_servico",
-            label: "CÓDIGO DO SERVIÇO",
-            type: "text",
-            required: true,
-            containerClass: "col-span-1"
-        },
+                                { type: "section", label: "Dados da Nota" },
+                                {
+                                    name: "numero_nota",
+                                    label: "NÚMERO DA NOTA",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "data_nota",
+                                    label: "DATA DA NOTA",
+                                    type: "date",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "codigo_servico",
+                                    label: "CÓDIGO DO SERVIÇO",
+                                    type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
 
-        { type: "section", label: "Dados Financeiros" },
-        {
-            name: "faturamento",
-            label: "FATURAMENTO",
-            type: "text",
-            placeholder: "0,00",
-            mask: "currency",
-            onChange: (event) => handleFieldChange("faturamento", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "base_calculo",
-            label: "BASE DE CÁLCULO",
-            type: "text",
-            placeholder: "0,00",
-            mask: "currency",
-            onChange: (event) => handleFieldChange("base_calculo", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "aliquota",
-            label: "ALÍQUOTA",
-            type: "text",
-            placeholder: "0,00%",
-            mask: "percentage",
-            onChange: (event) => handleFieldChange("aliquota", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "iss_retido",
-            label: "ISS RETIDO?",
-            type: "select",
-            options: [
-                { value: "", label: "Selecione" },
-                { value: "SIM", label: "Sim" },
-                { value: "NAO", label: "Não" }
-            ],
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "multa",
-            label: "MULTA",
-            type: "text",
-            placeholder: "0,00",
-            mask: "currency",
-            onChange: (event) => handleFieldChange("multa", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "juros",
-            label: "JUROS",
-            type: "text",
-            placeholder: "0,00",
-            mask: "currency",
-            onChange: (event) => handleFieldChange("juros", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "taxa",
-            label: "TAXA",
-            type: "text",
-            placeholder: "0,00",
-            mask: "currency",
-            onChange: (event) => handleFieldChange("taxa", event.target.value),
-            containerClass: "col-span-1"
-        },
-        {
-            name: "vl_issqn",
-            label: "VL. ISSQN",
-            type: "text",
-            placeholder: "0,00",
-            value: autoFields.vl_issqn,
-            readOnly: true,
-            containerClass: "col-span-1"
-        },
+                                { type: "section", label: "Dados Financeiros" },
+                                {
+                                    name: "faturamento",
+                                    label: "FATURAMENTO",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("faturamento", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "base_calculo",
+                                    label: "BASE DE CÁLCULO",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("base_calculo", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "aliquota",
+                                    label: "ALÍQUOTA",
+                                    type: "text",
+                                    placeholder: "0,00%",
+                                    mask: "percentage",
+                                    onChange: (event) => handleFieldChange("aliquota", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "iss_retido",
+                                    label: "ISS RETIDO?",
+                                    type: "select",
+                                    options: [
+                                        { value: "", label: "Selecione" },
+                                        { value: "SIM", label: "Sim" },
+                                        { value: "NAO", label: "Não" }
+                                    ],
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "multa",
+                                    label: "MULTA",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("multa", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "juros",
+                                    label: "JUROS",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("juros", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "taxa",
+                                    label: "TAXA",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    mask: "currency",
+                                    onChange: (event) => handleFieldChange("taxa", event.target.value),
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "vl_issqn",
+                                    label: "VL. ISSQN",
+                                    type: "text",
+                                    placeholder: "0,00",
+                                    value: autoFields.vl_issqn,
+                                    readOnly: true,
+                                    containerClass: "col-span-1"
+                                },
 
-        { type: "section", label: "Outros Dados" },
-        {
-            name: "status_empresa",
-            label: "STATUS EMPRESA",
-            type: "select",
-            options: [
-                { value: "", label: "Selecione o status da empresa" },
-                ...statusEmpresaOptions
-            ],
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "status",
-            label: "STATUS REGISTRO",
-            type: "select",
-            options: [
-                { value: "", label: "Selecione o status do registro" },
-                ...statusOptions
-            ],
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "historico",
-            label: "OBSERVAÇÃO",
-            type: "textarea",
-            containerClass: "col-span-2"
-        },
-        {
-            name: "vcto_guias_iss_proprio",
-            label: "VENCIMENTO DA GUIA",
-            type: "date",
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "data_emissao_display",
-            label: "DATA DE EMISSÃO",
-            type: "date",
-            value: autoFields.data_emissao.split('T')[0],
-            readOnly: true,
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "qtd",
-            label: "QUANTIDADE DE NOTA",
-            type: "text",
-            containerClass: "col-span-1"
-        },
-        {
-            name: "responsavel_nome",
-            label: "RESPONSÁVEL",
-            type: "text",
-            value: autoFields.responsavelNome,
-            readOnly: true,
-            required: true,
-            containerClass: "col-span-1"
-        },
-        {
-            name: "pdf_anexo1",
-            label: "Guia de Recolhimento",
-            type: "file",
-            accept: "application/pdf",
-            description: "Nenhum arquivo enviado",
-            containerClass: "col-span-1"
-        },
-        {
-            name: "pdf_anexo2",
-            label: "Protocolo",
-            type: "file",
-            accept: "application/pdf",
-            description: "Nenhum arquivo enviado",
-            containerClass: "col-span-1"
-        }
-    ]}
-    btnTitle="Adicionar Registro"
-    btnClass="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200"
-    gridClass="grid grid-cols-1 sm:grid-cols-2 gap-6"
-/>
+                                { type: "section", label: "Outros Dados" },
+                                {
+                                    name: "status_empresa",
+                                    label: "STATUS EMPRESA",
+                                    type: "select",
+                                    options: [
+                                        { value: "", label: "Selecione o status da empresa" },
+                                        ...statusEmpresaOptions
+                                    ],
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "status",
+                                    label: "STATUS REGISTRO",
+                                    type: "select",
+                                    options: [
+                                        { value: "", label: "Selecione o status do registro" },
+                                        ...statusOptions
+                                    ],
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "historico",
+                                    label: "OBSERVAÇÃO",
+                                    type: "textarea",
+                                    containerClass: "col-span-2"
+                                },
+                                {
+                                    name: "vcto_guias_iss_proprio",
+                                    label: "VENCIMENTO DA GUIA",
+                                    type: "date",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "data_emissao_display",
+                                    label: "DATA DE EMISSÃO",
+                                    type: "date",
+                                    value: autoFields.data_emissao.split('T')[0],
+                                    readOnly: true,
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "qtd",
+                                    label: "QUANTIDADE DE NOTA",
+                                    type: "text",
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "responsavel_nome",
+                                    label: "RESPONSÁVEL",
+                                    type: "text",
+                                    value: autoFields.responsavelNome,
+                                    readOnly: true,
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "pdf_anexo1",
+                                    label: "Guia de Recolhimento",
+                                    type: "file",
+                                    accept: "application/pdf",
+                                    description: "Nenhum arquivo enviado",
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "pdf_anexo2",
+                                    label: "Protocolo",
+                                    type: "file",
+                                    accept: "application/pdf",
+                                    description: "Nenhum arquivo enviado",
+                                    containerClass: "col-span-1"
+                                }
+                            ]}
+                            btnTitle="Adicionar Registro"
+                            btnClass="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200"
+                            gridClass="grid grid-cols-1 sm:grid-cols-2 gap-6"
+                        />
                     </div>
                 </div>
             </div>
