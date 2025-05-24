@@ -22,11 +22,11 @@ const geistMono = Geist_Mono({
 
 // Metadados padrão (ajuste conforme necessário)
 const defaultMetadata = {
-  title: "Seu Site - Título Padrão",
+  title: "Bravo Crud",
   description: "Site da bravo para a equipe da Casas Bahia",
   keywords: "Bravo, Casas Bahia, Fiscal",
   ogImage: "/images/og-image.jpg",
-  url: "http://localhost:3000/",
+  url: "https://bravo-crud.vercel.app/",
 };
 
 export default function RootLayout({
