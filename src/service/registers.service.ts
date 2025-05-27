@@ -2,7 +2,6 @@ import client from "@/config/appwrite.config";
 import { Databases, ID, Permission, Role, Query, Storage } from "appwrite";
 import { Models } from "appwrite";
 import AuthService from "./auth.service";
-
 interface RegisterData {
   empresa: string;
   loja: number | string;
@@ -65,8 +64,8 @@ class RegistersService {
       if (!userID) throw new Error("ID do usuário é obrigatório");
 
       return await this.db.listDocuments(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         [Query.equal("responsavel", userID)]
       );
     } catch (error) {
@@ -80,8 +79,8 @@ class RegistersService {
       if (!docID) throw new Error("ID do documento é obrigatório");
 
       return await this.db.getDocument(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         docID
       );
     } catch (error) {
@@ -109,8 +108,8 @@ class RegistersService {
       });
 
       return await this.db.createDocument(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         ID.unique(),
         processedData,
         [
@@ -145,8 +144,8 @@ class RegistersService {
       });
 
       return await this.db.updateDocument(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         docID,
         processedData
       );
@@ -161,8 +160,8 @@ class RegistersService {
       if (!docID) throw new Error("ID do documento é obrigatório");
 
       await this.db.deleteDocument(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         docID
       );
     } catch (error) {
@@ -176,8 +175,8 @@ class RegistersService {
       if (!teamId) throw new Error("ID do time é obrigatório");
 
       return await this.db.listDocuments(
-        process.env.NEXT_APPWRITE_DB_ID as string,
-        process.env.NEXT_APPWRITE_COLLECTION_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
         [Query.equal("teamId", teamId)]
       );
     } catch (error) {
@@ -189,12 +188,12 @@ class RegistersService {
   public async getFileDetails(fileId: string): Promise<Models.File> {
     try {
       if (!fileId) throw new Error("ID do arquivo é obrigatório");
-      if (!process.env.NEXT_APPWRITE_BUCKET_ID) {
+      if (!process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID) {
         throw new Error("Bucket ID não configurado");
       }
 
       return await this.storage.getFile(
-        process.env.NEXT_APPWRITE_BUCKET_ID,
+        process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID,
         fileId
       );
     } catch (error) {
@@ -205,7 +204,7 @@ class RegistersService {
 
   public async AddRegisterWithFiles(formData: FormData): Promise<{ success: boolean; results?: FileUploadResult[]; error?: string }> {
     try {
-      const bucketId = process.env.NEXT_APPWRITE_BUCKET_ID;
+      const bucketId = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID;
       if (!bucketId) throw new Error("Bucket ID não configurado");
 
       const results: FileUploadResult[] = [];
@@ -235,12 +234,12 @@ class RegistersService {
   public async deleteFile(fileId: string): Promise<void> {
     try {
       if (!fileId) throw new Error("ID do arquivo é obrigatório");
-      if (!process.env.NEXT_APPWRITE_BUCKET_ID) {
+      if (!process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID) {
         throw new Error("Bucket ID não configurado");
       }
 
       await this.storage.deleteFile(
-        process.env.NEXT_APPWRITE_BUCKET_ID,
+        process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID,
         fileId
       );
     } catch (error) {
