@@ -60,19 +60,23 @@ class RegistersService {
   }
 
   public async getDocuments(userID: string): Promise<Models.DocumentList<Models.Document>> {
-    try {
-      if (!userID) throw new Error("ID do usuário é obrigatório");
+  try {
+    if (!userID) throw new Error("ID do usuário é obrigatório");
 
-      return await this.db.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
-        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
-        [Query.equal("responsavel", userID)]
-      );
-    } catch (error) {
-      console.error("Erro ao buscar documentos:", error);
-      throw new Error("Falha ao recuperar documentos");
-    }
+    return await this.db.listDocuments(
+      process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
+      [
+        Query.equal("responsavel", userID),
+        Query.limit(1000) // Adiciona limite de 1000 registros
+      ]
+    );
+  } catch (error) {
+    console.error("Erro ao buscar documentos:", error);
+    throw new Error("Falha ao recuperar documentos");
   }
+}
+
 
   public async getDocument(docID: string): Promise<Models.Document> {
     try {
@@ -170,20 +174,28 @@ class RegistersService {
     }
   }
 
-  public async getDocumentsByTeam(teamId: string): Promise<Models.DocumentList<Models.Document>> {
-    try {
-      if (!teamId) throw new Error("ID do time é obrigatório");
+ public async getDocumentsByTeam(
+  teamId: string,
+  limit: number = 1000,
+  offset: number = 0
+): Promise<Models.DocumentList<Models.Document>> {
+  try {
+    if (!teamId) throw new Error("ID do time é obrigatório");
 
-      return await this.db.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
-        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
-        [Query.equal("teamId", teamId)]
-      );
-    } catch (error) {
-      console.error("Erro ao buscar documentos por time:", error);
-      throw new Error("Falha ao recuperar documentos do time");
-    }
+    return await this.db.listDocuments(
+      process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
+      [
+        Query.equal("teamId", teamId),
+        Query.limit(limit),
+        Query.offset(offset)
+      ]
+    );
+  } catch (error) {
+    console.error("Erro ao buscar documentos por time:", error);
+    throw new Error("Falha ao recuperar documentos do time");
   }
+}
 
   public async getFileDetails(fileId: string): Promise<Models.File> {
     try {
