@@ -8,7 +8,8 @@ import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import {
   FiCalendar, FiCheck, FiClock, FiFileText, FiTrendingUp,
-  FiX, FiFilter, FiBell, FiBarChart2, FiPieChart, FiSettings, FiPieChart as FiPie, FiBarChart, FiActivity
+  FiX, FiFilter, FiBell, FiBarChart2, FiPieChart, FiSettings, FiMap, FiLayers,
+  FiActivity
 } from "react-icons/fi";
 import { MdNoAccounts, MdOutlineDoNotDisturbAlt } from "react-icons/md";
 import { BsFillExclamationTriangleFill } from "react-icons/bs";
@@ -19,12 +20,18 @@ import { AvailableField, Filter } from "@/types/registros";
 import { RegistrosFilters } from "@/components/registros";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, Tooltip, Avatar } from "@mui/material";
+import { StatusDonutChart } from "@/components/charts/StatusDonutChart";
+import { StatusBarChart } from "@/components/charts/StatusBarChart";
+import { AliquotaHistogramChart } from "@/components/charts/AliquotaHistogramChart";
+import { RevenueChart } from "@/components/charts/RevenueChart";
+import { RevenueTreemapChart } from "@/components/charts/RevenueTreemapChart";
+import { StatusTimelineChart } from "@/components/charts/StatusTimelineChart";
+import { StateMapChart } from "@/components/charts/StateMapChart";
+import { getStateData } from "@/components/charts/getStateData";
 
-// Carregamento dinâmico para melhor performance
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
-
+// Tipos e constantes
 type KPIKey = "total" | "concluido" | "erro_login" | "modulo_nao_habilitado" | "sem_acesso" | "pendencia" | "sem_movimento" | "revenue";
-type ChartType = "status" | "revenue";
+type ChartType = "status" | "revenue" | "state" | "treemap" | "timeline" | "histogram";
 
 const STATUS_LABELS = [
   { key: "concluido", label: "Concluído", color: "#32CD32", icon: <FiCheck /> },
@@ -55,6 +62,7 @@ export default function DashboardPage() {
   const [groupBy, setGroupBy] = useState<"month" | "quarter" | "year">("month");
   const [showDataLabels, setShowDataLabels] = useState(false);
   const [showTrendLine, setShowTrendLine] = useState(true);
+  const [activeChart, setActiveChart] = useState<ChartType>("status");
 
   // Filtros
   const [filters, setFilters] = useState<Filter[]>([]);
@@ -172,132 +180,7 @@ export default function DashboardPage() {
     });
   }, [allDocuments, filters]);
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line
-  }, []);
-
-  // Configurações de tema para os gráficos
-  const chartThemeConfig = {
-    light: {
-      textColor: '#374151',
-      background: '#ffffff',
-      gridColor: '#e5e7eb',
-      axisColor: '#6b7280'
-    },
-    dark: {
-      textColor: '#f3f4f6',
-      background: '#1f2937',
-      gridColor: '#4b5563',
-      axisColor: '#9ca3af'
-    }
-  };
-
-  const currentTheme = chartThemeConfig[chartTheme];
-
-  // Gráfico de status dos registros (donut + barra horizontal)
-  const statusChartOptions: ApexOptions = {
-    chart: {
-      type: 'donut',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor,
-      toolbar: { show: false }
-    },
-    labels: STATUS_LABELS.map(s => s.label),
-    colors: STATUS_LABELS.map(s => s.color),
-    legend: {
-      position: 'bottom',
-      labels: {
-        colors: currentTheme.textColor
-      }
-    },
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.background]
-      },
-      dropShadow: {
-        enabled: false
-      }
-    },
-    plotOptions: {
-      pie: {
-        donut: {
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Total',
-              color: currentTheme.textColor,
-              formatter: () => stats.total.toString()
-            }
-          }
-        }
-      }
-    },
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (value) => `${value} (${stats.total ? Math.round((value / stats.total) * 100) : 0}%)`
-      }
-    }
-  };
-
-  const statusChartSeries = [
-    stats.concluido,
-    stats.erro_login,
-    stats.modulo_nao_habilitado,
-    stats.sem_acesso,
-    stats.pendencia,
-    stats.sem_movimento
-  ];
-
-  // Gráfico de barras horizontal para status
-  const statusBarOptions: ApexOptions = {
-    chart: {
-      type: 'bar',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor,
-      toolbar: { show: false }
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        borderRadius: 6,
-        barHeight: '60%',
-        distributed: true,
-      }
-    },
-    colors: STATUS_LABELS.map(s => s.color),
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.textColor]
-      }
-    },
-    xaxis: {
-      categories: STATUS_LABELS.map(s => s.label),
-      labels: {
-        style: { colors: currentTheme.textColor }
-      },
-      title: { text: "Quantidade", style: { color: currentTheme.textColor } }
-    },
-    yaxis: {
-      labels: { style: { colors: currentTheme.textColor } }
-    },
-    grid: {
-      borderColor: currentTheme.gridColor,
-      strokeDashArray: 4
-    },
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (value) => `${value} registro${value === 1 ? "" : "s"}`
-      }
-    }
-  };
-
-  // Gráfico de faturamento por período (linha + área)
+  // Agrupar dados para o gráfico de faturamento
   const getGroupedDates = () => {
     const groupedData: { [key: string]: number } = {};
 
@@ -322,149 +205,149 @@ export default function DashboardPage() {
     return groupedData;
   };
 
+  // Dados para gráficos
+
   const faturamentoPorPeriodo = getGroupedDates();
   const faturamentoPeriodoLabels = Object.keys(faturamentoPorPeriodo).sort((a, b) => {
-    // Ordenação personalizada para garantir a ordem cronológica
-    if (groupBy === "month") {
-      return new Date(a).getTime() - new Date(b).getTime();
-    } else if (groupBy === "quarter") {
+    if (groupBy === "month") return new Date(a).getTime() - new Date(b).getTime();
+    else if (groupBy === "quarter") {
       const [q1, y1] = a.split(' ');
       const [q2, y2] = b.split(' ');
       if (y1 !== y2) return parseInt(y1) - parseInt(y2);
       return parseInt(q1.substring(1)) - parseInt(q2.substring(1));
-    } else {
-      return parseInt(a) - parseInt(b);
-    }
+    } else return parseInt(a) - parseInt(b);
   });
 
   const faturamentoPeriodoData = faturamentoPeriodoLabels.map(period => faturamentoPorPeriodo[period]);
 
-  const faturamentoOptions: ApexOptions = {
-    chart: {
-      type: 'area',
-      background: currentTheme.background,
-      foreColor: currentTheme.textColor,
-      toolbar: {
-        show: true,
-        tools: {
-          download: true,
-          selection: true,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true
+  // Dados para mapa de estados
+  const stateData = useMemo(() => {
+    const stateCount: Record<string, number> = {};
+    filteredDocs.forEach(doc => {
+      let estado = "";
+      if (doc.tipo_registro === "TOMADO") {
+        estado = doc.estado_tomador || "";
+      } else if (doc.tipo_registro === "PRESTADO") {
+        estado = doc.estado_prestador || "";
+      }
+      if (estado) {
+        estado = estado.toUpperCase();
+        stateCount[estado] = (stateCount[estado] || 0) + 1;
+      }
+    });
+    return Object.entries(stateCount).map(([estado, count]) => ({
+      estado,
+      count
+    }));
+  }, [filteredDocs]);
+
+  // Dados para treemap de faturamento por empresa
+  const revenueByCompany = useMemo(() => {
+    const companyRevenue: Record<string, number> = {};
+    filteredDocs.forEach(doc => {
+      if (doc.empresa && doc.faturamento) {
+        companyRevenue[doc.empresa] = (companyRevenue[doc.empresa] || 0) + doc.faturamento;
+      }
+    });
+    return Object.entries(companyRevenue).map(([empresa, revenue]) => ({
+      x: empresa,
+      y: revenue
+    }));
+  }, [filteredDocs]);
+
+  // Dados para timeline de status
+  const statusTimelineData = useMemo(() => {
+    const timeline: Record<string, Record<string, number>> = {};
+
+    filteredDocs.forEach(doc => {
+      if (doc.data_emissao && doc.status) {
+        const date = new Date(doc.data_emissao);
+        let key;
+
+        if (groupBy === "month") {
+          key = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
+        } else if (groupBy === "quarter") {
+          const quarter = Math.floor(date.getMonth() / 3) + 1;
+          key = `T${quarter} ${date.getFullYear()}`;
+        } else {
+          key = date.getFullYear().toString();
         }
+
+        if (!timeline[key]) timeline[key] = {};
+        timeline[key][doc.status] = (timeline[key][doc.status] || 0) + 1;
       }
-    },
-    xaxis: {
-      categories: faturamentoPeriodoLabels,
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        }
-      },
-      axisBorder: {
-        show: true,
-        color: currentTheme.axisColor
-      },
-      axisTicks: {
-        show: true,
-        color: currentTheme.axisColor
-      }
-    },
-    yaxis: {
-      labels: {
-        style: {
-          colors: currentTheme.textColor
-        },
-        formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      }
-    },
-    stroke: {
-      curve: 'smooth',
-      width: 3
-    },
-    fill: {
-      type: "gradient",
-      gradient: {
-        shade: chartTheme === "dark" ? "dark" : "light",
-        type: "vertical",
-        shadeIntensity: 0.2,
-        gradientToColors: [chartTheme === "dark" ? "#6366F1" : "#10B981"],
-        inverseColors: false,
-        opacityFrom: 0.7,
-        opacityTo: 0.1,
-        stops: [0, 100]
-      }
-    },
-    colors: ['#10B981'],
-    dataLabels: {
-      enabled: showDataLabels,
-      style: {
-        colors: [currentTheme.background]
-      },
-      formatter: (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
-    },
-    title: {
-      text: 'Evolução do Faturamento',
-      align: 'left',
-      style: {
-        color: currentTheme.textColor,
-        fontSize: '16px'
-      }
-    },
-    grid: {
-      borderColor: currentTheme.gridColor,
-      strokeDashArray: 4
-    },
-    markers: {
-      size: 5,
-      hover: {
-        size: 7
-      }
-    },
-    annotations: showTrendLine ? {
-      yaxis: [{
-        y: stats.revenue / (filteredDocs.length || 1),
-        borderColor: '#F59E0B',
-        label: {
-          borderColor: '#F59E0B',
-          style: {
-            color: currentTheme.textColor,
-            background: currentTheme.background
-          },
-          text: `Média: ${(stats.revenue / (filteredDocs.length || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
-        }
-      }]
-    } : undefined,
-    tooltip: {
-      theme: chartTheme,
-      y: {
-        formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      }
+    });
+
+    return Object.entries(timeline).map(([period, statusCounts]) => ({
+      period,
+      ...statusCounts
+    }));
+  }, [filteredDocs, groupBy]);
+
+  // Dados para histograma de alíquotas
+  const aliquotaData = useMemo(() => {
+    const aliquotes = filteredDocs
+      .filter(doc => doc.aliquota)
+      .map(doc => parseFloat(doc.aliquota));
+
+    if (aliquotes.length === 0) return [];
+
+    const min = Math.min(...aliquotes);
+    const max = Math.max(...aliquotes);
+    const step = (max - min) / 5;
+
+    const bins: Record<string, number> = {};
+    for (let i = 0; i < 5; i++) {
+      const lower = min + (i * step);
+      const upper = lower + step;
+      bins[`${lower.toFixed(2)}-${upper.toFixed(2)}`] = 0;
     }
-  };
+
+    aliquotes.forEach(value => {
+      for (const range in bins) {
+        const [lower, upper] = range.split('-').map(parseFloat);
+        if (value >= lower && value < upper) {
+          bins[range]++;
+          break;
+        }
+      }
+    });
+
+    return Object.entries(bins).map(([range, count]) => ({
+      range,
+      count
+    }));
+  }, [filteredDocs]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // KPIs disponíveis
-  const kpiList: { key: KPIKey, label: string, icon: JSX.Element, color: string, formatter?: (value: number) => string }[] = [
-    { key: "total", label: "Total de Registros", icon: <FiFileText />, color: "bg-pink-100 text-pink-800" },
-    { key: "concluido", label: "Concluídos", icon: <FiCheck />, color: "bg-green-100 text-green-800" },
-    { key: "pendencia", label: "Pendência", icon: <BsFillExclamationTriangleFill />, color: "bg-red-100 text-red-800" },
-    { key: "erro_login", label: "Erro de login", icon: <MdNoAccounts />, color: "bg-orange-100 text-orange-800" },
-    { key: "modulo_nao_habilitado", label: "Módulo não habilitado", icon: <FiSettings />, color: "bg-indigo-100 text-indigo-800" },
-    { key: "sem_movimento", label: "Sem movimento", icon: <MdOutlineDoNotDisturbAlt />, color: "bg-gray-100 text-gray-800" },
-    { key: "sem_acesso", label: "Sem acesso", icon: <FiX />, color: "bg-cyan-100 text-cyan-800" },
-    {
-      key: "revenue",
-      label: "Faturamento Total",
-      icon: <FiTrendingUp />,
-      color: "bg-green-100 text-green-50", // Verde escuro de destaque
-      formatter: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    }
-  ];
+  const kpiList: {
+    key: KPIKey;
+    label: string;
+    icon: JSX.Element;
+    color: string;
+    formatter?: (value: number) => string;
+  }[] = [
+      { key: "total", label: "Total de Registros", icon: <FiFileText />, color: "bg-pink-100 text-pink-800" },
+      { key: "concluido", label: "Concluídos", icon: <FiCheck />, color: "bg-green-100 text-green-800" },
+      { key: "pendencia", label: "Pendência", icon: <BsFillExclamationTriangleFill />, color: "bg-red-100 text-red-800" },
+      { key: "erro_login", label: "Erro de login", icon: <MdNoAccounts />, color: "bg-orange-100 text-orange-800" },
+      { key: "modulo_nao_habilitado", label: "Módulo não habilitado", icon: <FiSettings />, color: "bg-indigo-100 text-indigo-800" },
+      { key: "sem_movimento", label: "Sem movimento", icon: <MdOutlineDoNotDisturbAlt />, color: "bg-gray-100 text-gray-800" },
+      { key: "sem_acesso", label: "Sem acesso", icon: <FiX />, color: "bg-cyan-100 text-cyan-800" },
+      {
+        key: "revenue",
+        label: "Faturamento Total",
+        icon: <FiTrendingUp />,
+        color: "bg-green-100 text-green-800",
+        formatter: (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      }
+    ];
 
-  // Notificação visual (toast/badge)
+  // Notificação visual
   useEffect(() => {
     if (showAlert) {
       toast.warn(
@@ -650,64 +533,127 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Gráficos Avançados */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Status Donut */}
-          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-              <FiPie /> Distribuição dos Status
-            </h2>
-            {typeof window !== 'undefined' && (
-              <Chart
-                options={statusChartOptions}
-                series={statusChartSeries}
-                type="donut"
-                height={340}
+        {/* Navegação de Gráficos */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setActiveChart("status")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "status" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiPieChart /> Status
+          </button>
+          <button
+            onClick={() => setActiveChart("revenue")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "revenue" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiTrendingUp /> Faturamento
+          </button>
+          <button
+            onClick={() => setActiveChart("state")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "state" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiMap /> Estados
+          </button>
+          <button
+            onClick={() => setActiveChart("treemap")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "treemap" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiLayers /> Empresas
+          </button>
+          <button
+            onClick={() => setActiveChart("timeline")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "timeline" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiClock /> Timeline
+          </button>
+          <button
+            onClick={() => setActiveChart("histogram")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeChart === "histogram" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            <FiBarChart2 /> Alíquotas
+          </button>
+        </div>
+
+        {/* Gráficos Dinâmicos */}
+        {activeChart === "status" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <StatusDonutChart
+                stats={stats}
+                theme={chartTheme}
+                showDataLabels={showDataLabels}
               />
-            )}
-            <div className="flex flex-wrap gap-3 mt-4 justify-center">
-              {STATUS_LABELS.map((s, idx) => (
-                <span key={s.key} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ background: s.color + "22", color: s.color }}>
-                  <span className="text-base">{s.icon}</span>
-                  <span className="font-medium">{s.label}</span>
-                  <span className="ml-1 text-gray-500">{statusChartSeries[idx]}</span>
-                </span>
-              ))}
+            </div>
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <StatusBarChart
+                stats={stats}
+                theme={chartTheme}
+                showDataLabels={showDataLabels}
+              />
             </div>
           </div>
+        )}
 
-          {/* Gráfico de Status em Barra */}
-          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-              <FiBarChart /> Status por Quantidade
-            </h2>
-            {typeof window !== 'undefined' && (
-              <Chart
-                options={statusBarOptions}
-                series={[{ data: statusChartSeries }]}
-                type="bar"
-                height={340}
+        {activeChart === "revenue" && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <RevenueChart
+                data={{
+                  labels: faturamentoPeriodoLabels,
+                  values: faturamentoPeriodoData
+                }}
+                theme={chartTheme}
+                showDataLabels={showDataLabels}
+                showTrendLine={showTrendLine}
+                averageRevenue={stats.revenue / (filteredDocs.length || 1)}
               />
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Gráfico de Faturamento */}
-        <div className="grid grid-cols-1 gap-6 mb-8">
-          <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-              <FiTrendingUp /> Evolução do Faturamento
-            </h2>
-            {typeof window !== 'undefined' && (
-              <Chart
-                options={faturamentoOptions}
-                series={[{ name: "Faturamento", data: faturamentoPeriodoData }]}
-                type="area"
-                height={380}
+        {activeChart === "state" && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <StateMapChart
+                data={stateData}
+                theme={chartTheme}
               />
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeChart === "treemap" && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <RevenueTreemapChart
+                data={revenueByCompany}
+                theme={chartTheme}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeChart === "timeline" && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <StatusTimelineChart
+                data={statusTimelineData}
+                theme={chartTheme}
+                groupBy={groupBy}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeChart === "histogram" && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <AliquotaHistogramChart
+                data={aliquotaData}
+                theme={chartTheme}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Últimas Atividades */}
         <div className="mb-8">
@@ -733,7 +679,18 @@ export default function DashboardPage() {
                       <span className="text-xs text-gray-400">{activity.municipio}</span>
                     </div>
                     <div className="text-xs text-gray-500">
-                      {activity.status && <span>Status: <span className="font-medium">{activity.status}</span></span>}
+                      {activity.status && (
+                        <span>
+                          Status:{" "}
+                          <span className="font-medium">
+                            {
+                              STATUS_LABELS.find(
+                                s => s.key.toLowerCase() === activity.status.toLowerCase()
+                              )?.label || activity.status
+                            }
+                          </span>
+                        </span>
+                      )}
                       {activity.faturamento && (
                         <span className="ml-2">Faturamento: <span className="font-medium">{Number(activity.faturamento).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></span>
                       )}

@@ -12,19 +12,17 @@ import { Filter, AvailableField } from "@/types/registros";
 import { toast } from "react-toastify";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { FiX } from "react-icons/fi";
+import { FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 export default function RegistrosPage() {
+    // Estados principais
     const [user, setUser] = useState<any>(null);
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [showConfirm, setShowConfirm] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [filters, setFilters] = useState<Filter[]>([]);
-    const [sortConfig, setSortConfig] = useState<{ 
-        key: string; 
-        direction: 'ascending' | 'descending' 
-    } | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [newFilterValue, setNewFilterValue] = useState("");
     const [newFilterField, setNewFilterField] = useState("all");
@@ -32,12 +30,18 @@ export default function RegistrosPage() {
     const [dateFilterValue, setDateFilterValue] = useState("");
     const [userNames, setUserNames] = useState<Record<string, string>>({});
     const [datePickerOpen, setDatePickerOpen] = useState(false);
-    
+
+    // Paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    // Appwrite
     const storage = new Storage(client);
     const bucketId = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID;
     const registersService = RegistersService.getInstance();
     const authService = AuthService.getInstance();
 
+    // Campos disponíveis para filtro
     const availableFields: AvailableField[] = [
         { value: "empresa", label: "Empresa", type: "text" },
         { value: "loja", label: "Loja", type: "text" },
@@ -71,7 +75,7 @@ export default function RegistrosPage() {
         { value: "responsavel", label: "Responsável", type: "text" },
     ];
 
-    // Função para solicitar ordenação
+    // Ordenação
     const requestSort = (key: string) => {
         let direction: 'ascending' | 'descending' = 'ascending';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -80,53 +84,46 @@ export default function RegistrosPage() {
         setSortConfig({ key, direction });
     };
 
-    // Função para ordenar os documentos
+    // Função para tratar números corretamente (sem replace global)
+    function parseNumber(value: any) {
+        if (typeof value === "number") return value;
+        if (!value) return 0;
+        // Se vier string, tenta converter direto
+        return Number(value);
+    }
+
+    // Ordena documentos
     const sortedDocuments = useMemo(() => {
         if (!sortConfig) return documents;
-        
         return [...documents].sort((a: any, b: any) => {
-            // Tratamento especial para valores monetários e numéricos
             const numericFields = ['faturamento', 'base_calculo', 'aliquota', 'multa', 'juros', 'taxa', 'vl_issqn', 'qtd'];
-            
             let valueA = a[sortConfig.key];
             let valueB = b[sortConfig.key];
-
             if (numericFields.includes(sortConfig.key)) {
-                valueA = parseFloat(String(valueA || 0).replace(',', '.'));
-                valueB = parseFloat(String(valueB || 0).replace(',', '.'));
+                valueA = parseNumber(valueA);
+                valueB = parseNumber(valueB);
             } else if (sortConfig.key.includes('data') || sortConfig.key.includes('vcto') || sortConfig.key.includes('emissao')) {
-                // Para campos de data
                 valueA = valueA ? new Date(valueA).getTime() : 0;
                 valueB = valueB ? new Date(valueB).getTime() : 0;
             } else {
-                // Para strings
                 valueA = String(valueA || '').toLowerCase();
                 valueB = String(valueB || '').toLowerCase();
             }
-
-            if (valueA < valueB) {
-                return sortConfig.direction === 'ascending' ? -1 : 1;
-            }
-            if (valueA > valueB) {
-                return sortConfig.direction === 'ascending' ? 1 : -1;
-            }
+            if (valueA < valueB) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (valueA > valueB) return sortConfig.direction === 'ascending' ? 1 : -1;
             return 0;
         });
     }, [documents, sortConfig]);
 
-    // Filtrar documentos ordenados
+    // Filtra documentos
     const filteredDocuments = useMemo(() => {
         if (filters.length === 0) return sortedDocuments;
-
         return sortedDocuments.filter((doc: any) => {
             return filters.every(filter => {
                 if (filter.type !== "date") {
                     const searchTerm = filter.value.toLowerCase();
                     if (filter.field === "all") {
-                        return Object.values(doc).some(value => {
-                            const safeValue = String(value ?? '').toLowerCase();
-                            return safeValue.includes(searchTerm);
-                        });
+                        return Object.values(doc).some(value => String(value ?? '').toLowerCase().includes(searchTerm));
                     } else {
                         let fieldValue;
                         if (filter.field === "responsavel") {
@@ -139,13 +136,10 @@ export default function RegistrosPage() {
                 } else {
                     const filterDate = new Date(filter.value);
                     if (isNaN(filterDate.getTime())) return false;
-
                     const docDateValue = doc[filter.field];
                     if (!docDateValue) return false;
-
                     const docDate = new Date(docDateValue);
                     if (isNaN(docDate.getTime())) return false;
-
                     return (
                         docDate.getFullYear() === filterDate.getFullYear() &&
                         docDate.getMonth() === filterDate.getMonth() &&
@@ -156,23 +150,33 @@ export default function RegistrosPage() {
         });
     }, [sortedDocuments, filters, userNames]);
 
+    // Paginação
+    const paginatedDocuments = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredDocuments.slice(start, start + pageSize);
+    }, [filteredDocuments, currentPage, pageSize]);
+
+    // Volta para página 1 ao mudar filtros ou pageSize
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters, pageSize]);
+
+    // Busca nomes dos responsáveis
     const fetchUserNames = async (userIds: string[]) => {
         const names: Record<string, string> = {};
-
         for (const userId of userIds) {
             try {
                 const account = new AppwriteAccount(client);
                 const user = await account.get(userId);
                 names[userId] = user.name || user.email;
-            } catch (error) {
-                console.error(`Erro ao buscar usuário ${userId}:`, error);
+            } catch {
                 names[userId] = "Usuário desconhecido";
             }
         }
-
         setUserNames(names);
     };
 
+    // Download PDF
     const downloadPdf = async (fileId: string, fileName: string) => {
         try {
             if (!bucketId) throw new Error("Bucket ID não configurado");
@@ -182,11 +186,11 @@ export default function RegistrosPage() {
             saveAs(blob, fileName || `documento_${Date.now()}.pdf`);
             toast.success("Download iniciado!");
         } catch (error) {
-            console.error("Erro ao baixar arquivo:", error);
             toast.error("Erro ao baixar arquivo");
         }
     };
 
+    // Exporta para Excel
     const exportToExcel = () => {
         const dataToExport = filteredDocuments.map((item: any) => ({
             Empresa: item.empresa || '',
@@ -221,7 +225,6 @@ export default function RegistrosPage() {
             Responsavel: item.responsavel || '',
             TeamId: item.teamId || '',
         }));
-
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
@@ -230,66 +233,61 @@ export default function RegistrosPage() {
         saveAs(data, `registros_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    // Utilitários
     function parseDate(value: any) {
         if (!value) return '';
         const date = new Date(value);
         return isNaN(date.getTime()) ? '' : date.toISOString();
     }
-
     function parseFormValue(value: string) {
         if (!value) return null;
         const num = Number(value.toString().replace(',', '.'));
         return isNaN(num) ? null : num;
     }
 
+    // Busca dados iniciais
     const fetchData = async () => {
         try {
             const accountData = await authService.getAccount();
             setUser(accountData);
-            const teamId = accountData.teamId;
-            if (!teamId) throw new Error("Usuário não está em nenhum time");
-
-            const docs = await registersService.getDocumentsByTeam(teamId);
+            const docs = await registersService.getAllDocuments();
             setDocuments(docs.documents || []);
-
             const uniqueResponsaveis = [...new Set(docs.documents.map((doc: any) => doc.responsavel).filter(Boolean))];
             if (uniqueResponsaveis.length > 0) {
                 await fetchUserNames(uniqueResponsaveis as string[]);
             }
-        } catch (err) {
-            console.error("Erro ao carregar registros:", err);
+        } catch {
             toast.error("Erro ao carregar dados");
         } finally {
             setLoading(false);
         }
     };
 
+    // Deletar registro
     const handleDelete = async () => {
         if (!selectedId) return;
         try {
             await registersService.delete(selectedId);
             setDocuments((prev) => prev.filter((doc: any) => doc.$id !== selectedId));
             toast.success("Registro deletado com sucesso!");
-        } catch (error) {
+        } catch {
             toast.error("Erro ao deletar registro");
-            console.error("Erro ao deletar:", error);
         } finally {
             setShowConfirm(false);
             setSelectedId(null);
         }
     };
 
+    // Filtros
     const addFilter = () => {
         if (newFilterType !== "date" && !newFilterValue.trim()) {
             toast.error("Por favor, insira um valor para filtrar");
             return;
         }
-
         if (newFilterType === "date" && !dateFilterValue) {
             toast.error("Por favor, selecione uma data");
             return;
         }
-
         const newFilter: Filter = {
             id: Date.now().toString(),
             value: newFilterType === "date"
@@ -298,41 +296,27 @@ export default function RegistrosPage() {
             field: newFilterField,
             type: newFilterType
         };
-
         setFilters([...filters, newFilter]);
         setNewFilterValue("");
         setDateFilterValue("");
         setDatePickerOpen(false);
     };
-
-    const removeFilter = (id: string) => {
-        setFilters(filters.filter(filter => filter.id !== id));
-    };
-
-    const handleSelectForDeletion = (id: string) => {
-        setSelectedId(id);
-        setShowConfirm(true);
-    };
-
+    const removeFilter = (id: string) => setFilters(filters.filter(filter => filter.id !== id));
+    const handleSelectForDeletion = (id: string) => { setSelectedId(id); setShowConfirm(true); };
     const handleFieldChange = (value: string) => {
         setNewFilterField(value);
         const selectedField = availableFields.find(field => field.value === value);
-        if (selectedField) {
-            setNewFilterType(selectedField.type);
-        }
+        if (selectedField) setNewFilterType(selectedField.type);
     };
-
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         try {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data, { type: "array" });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const json: any[] = XLSX.utils.sheet_to_json(worksheet);
-
             for (const [index, row] of json.entries()) {
                 try {
                     const payload = {
@@ -368,27 +352,21 @@ export default function RegistrosPage() {
                         responsavel: String(row['Responsavel'] || user?.$id || ''),
                         teamId: String(row['TeamId'] || user?.teamId || '')
                     };
-
                     await registersService.AddRegister(payload);
                 } catch (err) {
-                    console.error(`Erro na linha ${index + 2}:`, row, err);
                     toast.error(`Erro na linha ${index + 2}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
                 }
             }
-
             toast.success("Importação concluída com sucesso!");
             fetchData();
         } catch (err) {
-            console.error("Erro ao processar arquivo Excel:", err);
             toast.error(`Erro ao importar: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
         } finally {
             if (e.target) e.target.value = '';
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     if (loading) {
         return (
@@ -397,6 +375,11 @@ export default function RegistrosPage() {
             </div>
         );
     }
+
+    // --- DESIGN MELHORADO DA PAGINAÇÃO ---
+    const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / pageSize));
+    const canPrev = currentPage > 1;
+    const canNext = currentPage < totalPages;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -426,6 +409,46 @@ export default function RegistrosPage() {
                     />
                 </div>
 
+                {/* Paginação melhorada */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                    <div className="flex items-center gap-2">
+                        <label className="mr-2 font-medium">Registros por página:</label>
+                        <select
+                            value={pageSize}
+                            onChange={e => {
+                                setPageSize(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="border border-gray-400 rounded-lg px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 text-gray-700 font-medium hover:border-blue-500"
+                        >
+                            {[10, 30, 50, 100].map(size => (
+                                <option key={size} value={size}>{size}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={!canPrev}
+                            className={`p-2 rounded border ${canPrev ? 'hover:bg-blue-100 text-blue-700' : 'text-gray-400 cursor-not-allowed'}`}
+                            title="Página anterior"
+                        >
+                            <FiChevronLeft size={18} />
+                        </button>
+                        <span className="font-medium text-gray-700">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={!canNext}
+                            className={`p-2 rounded border ${canNext ? 'hover:bg-blue-100 text-blue-700' : 'text-gray-400 cursor-not-allowed'}`}
+                            title="Próxima página"
+                        >
+                            <FiChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+
                 <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div className="text-sm text-gray-600">
                         {filteredDocuments.length} {filteredDocuments.length === 1 ? 'registro' : 'registros'} encontrados
@@ -442,7 +465,7 @@ export default function RegistrosPage() {
 
                 <div className="overflow-x-auto">
                     <RegistrosTable
-                        filteredDocuments={filteredDocuments}
+                        filteredDocuments={paginatedDocuments}
                         filters={filters}
                         sortConfig={sortConfig}
                         expandedRow={expandedRow}

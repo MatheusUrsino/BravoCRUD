@@ -142,11 +142,11 @@ const EditRegisterPage = () => {
         const juros = parseFormValue(currentValues.juros?.toString() || '0');
         const taxa = parseFormValue(currentValues.taxa?.toString() || '0');
 
-        const vlIssqn = (base * (aliquota / 100)) + multa + juros + taxa;
+        const vlIssqn = (base * (aliquota / 10000)) + multa + juros + taxa;
 
         return {
             raw: vlIssqn,
-            formatted: formatCurrency(vlIssqn)
+            formatted: vlIssqn
         };
     };
 
@@ -154,7 +154,7 @@ const EditRegisterPage = () => {
         const calculatedVlIssqn = calculateVlIssqn();
         setRegister(prev => ({
             ...prev,
-            vl_issqn: calculatedVlIssqn.formatted
+            vl_issqn: calculatedVlIssqn.raw // Salva o valor numérico!
         }));
     }, [register.base_calculo, register.aliquota, register.multa, register.juros, register.taxa]);
 
@@ -495,7 +495,6 @@ const EditRegisterPage = () => {
                                         mask: "cnpj",
                                         value: register.cnpj_tomador,
                                         placeholder: "00.000.000/0000-00",
-                                        required: true,
                                         maxLength: 18,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
@@ -504,7 +503,6 @@ const EditRegisterPage = () => {
                                         label: "MUNICÍPIO TOMADOR",
                                         type: "text",
                                         value: register.municipio_tomador,
-                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
@@ -514,7 +512,6 @@ const EditRegisterPage = () => {
                                         value: register.estado_tomador,
                                         maxLength: 2,
                                         placeholder: "Ex: SP",
-                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
@@ -522,7 +519,6 @@ const EditRegisterPage = () => {
                                         label: "INSCRIÇÃO MUNICIPAL TOMADOR",
                                         type: "text",
                                         value: register.im_tomador,
-                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
 
@@ -535,7 +531,6 @@ const EditRegisterPage = () => {
                                         mask: "cnpj",
                                         value: register.cnpj_prestador,
                                         placeholder: "00.000.000/0000-00",
-                                        required: true,
                                         maxLength: 18,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
@@ -544,7 +539,6 @@ const EditRegisterPage = () => {
                                         label: "MUNICÍPIO PRESTADOR",
                                         type: "text",
                                         value: register.municipio_prestador,
-                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
@@ -554,7 +548,6 @@ const EditRegisterPage = () => {
                                         value: register.estado_prestador,
                                         maxLength: 2,
                                         placeholder: "Ex: SP",
-                                        required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
                                     {
@@ -562,7 +555,6 @@ const EditRegisterPage = () => {
                                         label: "INSCRIÇÃO MUNICIPAL PRESTADOR",
                                         type: "text",
                                         value: register.im_prestador,
-                                        required: false,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
 
@@ -653,7 +645,7 @@ const EditRegisterPage = () => {
                                         name: "vl_issqn",
                                         label: "VL. ISSQN",
                                         type: "text",
-                                        value: register.vl_issqn,
+                                        value: formatCurrency(Number(register.vl_issqn) || 0), // Formata só para mostrar
                                         placeholder: "0,00",
                                         mask: "currency",
                                         readOnly: true,

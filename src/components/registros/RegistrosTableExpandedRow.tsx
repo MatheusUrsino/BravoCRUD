@@ -1,5 +1,4 @@
 import { FiMapPin, FiDollarSign, FiCalendar, FiUser, FiFileText } from "react-icons/fi";
-import { formatCNPJ, formatCurrency, formatDate } from "@/utils/formatters";
 import { Models } from "appwrite";
 
 interface RegistrosTableExpandedRowProps {
@@ -7,141 +6,213 @@ interface RegistrosTableExpandedRowProps {
   userNames: Record<string, string>;
 }
 
-const adjustTimezone = (dateString: string): string => {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    return new Date(date.getTime() + (date.getTimezoneOffset() * 60000)).toISOString();
-  } catch {
-    return '';
-  }
-};
+// Função utilitária para remover o horário de uma data no formato ISO ou yyyy-mm-ddTHH:mm:ss
+function formatDate(dateStr?: string) {
+  if (!dateStr) return "";
+  // Aceita tanto yyyy-mm-dd quanto yyyy-mm-ddTHH:mm:ss
+  return dateStr.split("T")[0];
+}
 
-const formatDateBr = (dateString: string): string => {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return '';
-  }
-};
-
-const parseToCents = (value: number | string | undefined): number | null => {
-  if (value === undefined || value === null || value === '') return null;
-  
-  const num = typeof value === 'string' 
-    ? parseFloat(value.replace(',', '.')) 
-    : value;
-  
-  return isNaN(num) ? null : num / 100;
-};
-
-export const RegistrosTableExpandedRow = ({ 
-  data, 
+export const RegistrosTableExpandedRow = ({
+  data,
   userNames
 }: RegistrosTableExpandedRowProps) => {
   return (
-    <tr className="bg-blue-50">
-      <td colSpan={9} className="px-0 py-4">
-        <div className="px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <tr>
+      <td colSpan={9} style={{ padding: 0, background: "#f4f6fa" }}>
+        <div
+          style={{
+            padding: "32px",
+            background: "linear-gradient(135deg, #f9fafb 60%, #e2e8f0 100%)",
+            borderRadius: "16px",
+            margin: "16px 0",
+            boxShadow: "0 4px 24px 0 rgba(44,62,80,0.08)",
+            border: "1px solid #e2e8f0"
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "40px",
+              justifyContent: "space-between"
+            }}
+          >
             {/* Seção Informações Básicas */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiMapPin /> Informações Básicas
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiMapPin color="#3182ce" /> Informações Básicas
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Empresa:</span> {data.empresa || '-'}</p>
-                <p><span className="font-medium">Loja:</span> {data.loja || '-'}</p>
-                <p><span className="font-medium">Doc SAP:</span> {data.docSap || '-'}</p>
-                <p><span className="font-medium">Tipo Registro:</span> {data.tipo_registro || '-'}</p>
-                <p><span className="font-medium">Status Empresa:</span>
-                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                    data.status_empresa === 'Ativa' ? 'bg-green-100 text-green-800' :
-                    data.status_empresa === 'Inativa' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {data.status_empresa || '-'}
-                  </span>
-                </p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>Empresa:</span> {data.empresa}</li>
+                <li><span style={{ fontWeight: 500 }}>Loja:</span> {data.loja}</li>
+                <li><span style={{ fontWeight: 500 }}>Doc SAP:</span> {data.docSap}</li>
+                <li><span style={{ fontWeight: 500 }}>Tipo Registro:</span> {data.tipo_registro}</li>
+                <li><span style={{ fontWeight: 500 }}>Status Empresa:</span> {data.status_empresa}</li>
+              </ul>
             </div>
 
             {/* Seção Tomador */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiUser /> Dados do Tomador
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiUser color="#805ad5" /> Dados do Tomador
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">CNPJ:</span> {data.cnpj_tomador ? formatCNPJ(data.cnpj_tomador) : '-'}</p>
-                <p><span className="font-medium">Município:</span> {data.municipio_tomador || '-'}</p>
-                <p><span className="font-medium">Estado:</span> {data.estado_tomador || '-'}</p>
-                <p><span className="font-medium">I.M:</span> {data.im_tomador || '-'}</p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>CNPJ:</span> {data.cnpj_tomador}</li>
+                <li><span style={{ fontWeight: 500 }}>Município:</span> {data.municipio_tomador}</li>
+                <li><span style={{ fontWeight: 500 }}>Estado:</span> {data.estado_tomador}</li>
+                <li><span style={{ fontWeight: 500 }}>I.M:</span> {data.im_tomador}</li>
+              </ul>
             </div>
 
             {/* Seção Prestador */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiUser /> Dados do Prestador
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiUser color="#38a169" /> Dados do Prestador
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">CNPJ:</span> {data.cnpj_prestador ? formatCNPJ(data.cnpj_prestador) : '-'}</p>
-                <p><span className="font-medium">Município:</span> {data.municipio_prestador || '-'}</p>
-                <p><span className="font-medium">Estado:</span> {data.estado_prestador || '-'}</p>
-                <p><span className="font-medium">I.M:</span> {data.im_prestador || '-'}</p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>CNPJ:</span> {data.cnpj_prestador}</li>
+                <li><span style={{ fontWeight: 500 }}>Município:</span> {data.municipio_prestador}</li>
+                <li><span style={{ fontWeight: 500 }}>Estado:</span> {data.estado_prestador}</li>
+                <li><span style={{ fontWeight: 500 }}>I.M:</span> {data.im_prestador}</li>
+              </ul>
             </div>
 
             {/* Seção Nota Fiscal */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiFileText /> Dados da Nota
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiFileText color="#e53e3e" /> Dados da Nota
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Número:</span> {data.numero_nota || '-'}</p>
-                <p><span className="font-medium">Data:</span> {data.data_nota ? formatDateBr(adjustTimezone(data.data_nota)) : '-'}</p>
-                <p><span className="font-medium">Código Serviço:</span> {data.codigo_servico || '-'}</p>
-                <p><span className="font-medium">ISS Retido:</span> {data.iss_retido || '-'}</p>
-                <p><span className="font-medium">Quantidade:</span> {data.qtd || '-'}</p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>Número:</span> {data.numero_nota}</li>
+                <li><span style={{ fontWeight: 500 }}>Data:</span> {formatDate(data.data_nota)}</li>
+                <li><span style={{ fontWeight: 500 }}>Código Serviço:</span> {data.codigo_servico}</li>
+                <li><span style={{ fontWeight: 500 }}>ISS Retido:</span> {data.iss_retido}</li>
+                <li><span style={{ fontWeight: 500 }}>Quantidade:</span> {data.qtd}</li>
+              </ul>
             </div>
 
             {/* Seção Financeiro */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiDollarSign /> Dados Financeiros
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiDollarSign color="#d69e2e" /> Dados Financeiros
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Faturamento:</span> {data.faturamento ? formatCurrency(parseToCents(data.faturamento)!) : '-'}</p>
-                <p><span className="font-medium">Base Cálculo:</span> {data.base_calculo ? formatCurrency(parseToCents(data.base_calculo)!) : '-'}</p>
-                <p><span className="font-medium">Alíquota:</span> {data.aliquota ? `${data.aliquota}%` : '-'}</p>
-                <p><span className="font-medium">Multa:</span> {data.multa ? formatCurrency(parseToCents(data.multa)!) : '-'}</p>
-                <p><span className="font-medium">Juros:</span> {data.juros ? formatCurrency(parseToCents(data.juros)!) : '-'}</p>
-                <p><span className="font-medium">Taxa:</span> {data.taxa ? formatCurrency(parseToCents(data.taxa)!) : '-'}</p>
-                <p><span className="font-medium">Valor ISSQN:</span> {data.vl_issqn ? formatCurrency(parseToCents(data.vl_issqn)!) : '-'}</p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>Faturamento:</span> {data.faturamento}</li>
+                <li><span style={{ fontWeight: 500 }}>Base Cálculo:</span> {data.base_calculo}</li>
+                <li><span style={{ fontWeight: 500 }}>Alíquota:</span> {data.aliquota}</li>
+                <li><span style={{ fontWeight: 500 }}>Multa:</span> {data.multa}</li>
+                <li><span style={{ fontWeight: 500 }}>Juros:</span> {data.juros}</li>
+                <li><span style={{ fontWeight: 500 }}>Taxa:</span> {data.taxa}</li>
+                <li><span style={{ fontWeight: 500 }}>Valor ISSQN:</span> {data.vl_issqn}</li>
+              </ul>
             </div>
 
             {/* Seção Outras Informações */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                <FiCalendar /> Outras Informações
+            <div style={{
+              minWidth: 240,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "20px",
+              boxShadow: "0 2px 8px 0 rgba(44,62,80,0.04)",
+              flex: "1 1 240px"
+            }}>
+              <h4 style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                color: "#2d3748",
+                fontWeight: 700,
+                fontSize: 18
+              }}>
+                <FiCalendar color="#3182ce" /> Outras Informações
               </h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Vencimento:</span> {data.vcto_guias_iss_proprio ? formatDateBr(adjustTimezone(data.vcto_guias_iss_proprio)) : '-'}</p>
-                <p><span className="font-medium">Emissão:</span> {data.data_emissao ? formatDateBr(adjustTimezone(data.data_emissao)) : '-'}</p>
-                <p><span className="font-medium">Status:</span> {data.status || '-'}</p>
-                <p><span className="font-medium">Histórico:</span> {data.historico || '-'}</p>
-                <p className="flex items-center gap-1">
-                  <FiUser size={14} />
-                  <span className="font-medium">Responsável:</span> {userNames[data.responsavel] || data.responsavel || '-'}
-                </p>
-              </div>
+              <ul style={{ fontSize: 15, color: "#4a5568", listStyle: "none", padding: 0, margin: 0 }}>
+                <li><span style={{ fontWeight: 500 }}>Vencimento:</span> {formatDate(data.vcto_guias_iss_proprio)}</li>
+                <li><span style={{ fontWeight: 500 }}>Emissão:</span> {formatDate(data.data_emissao)}</li>
+                <li><span style={{ fontWeight: 500 }}>Status:</span> {data.status}</li>
+                <li><span style={{ fontWeight: 500 }}>Histórico:</span> {data.historico}</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <FiUser size={16} color="#2b6cb0" />
+                  <span style={{ fontWeight: 500 }}>Responsável:</span> {userNames[data.responsavel] ?? data.responsavel}
+                </li>
+              </ul>
             </div>
           </div>
         </div>

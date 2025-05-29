@@ -29,18 +29,7 @@ interface RegistrosTableRowProps {
   onDownloadPdf: (fileId: string, fileName: string) => void;
 }
 
-/**
- * Converte valores monetários para centavos
- */
-const parseToCents = (value: number | string | undefined): number | null => {
-  if (value === undefined || value === null || value === "") return null;
 
-  const num = typeof value === "string"
-    ? parseFloat(value.replace(",", "."))
-    : value;
-
-  return isNaN(num) ? null : num / 100;
-};
 
 /**
  * Mapeamento de status para cores, ícones e labels
@@ -191,11 +180,14 @@ export const RegistrosTableRow = ({
       </td>
 
       {/* Coluna Valor ISSQN */}
+      {/* Coluna Valor ISSQN */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Valor ISSQN</span>
           <span className="text-gray-900">
-            {data.vl_issqn ? formatCurrency(parseToCents(data.vl_issqn)!) : "-"}
+            {data.vl_issqn !== undefined && data.vl_issqn !== null && data.vl_issqn !== ""
+              ? formatCurrency(Number(data.vl_issqn))
+              : "-"}
           </span>
         </div>
       </td>

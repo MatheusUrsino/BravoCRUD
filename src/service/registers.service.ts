@@ -58,22 +58,18 @@ class RegistersService {
     }
     return RegistersService.instance;
   }
-
-  public async getDocuments(userID: string): Promise<Models.DocumentList<Models.Document>> {
+  public async getAllDocuments(): Promise<Models.DocumentList<Models.Document>> {
     try {
-      if (!userID) throw new Error("ID do usuário é obrigatório");
-
       return await this.db.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
         process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
-        [Query.equal("responsavel", userID)]
+        [Query.limit(1000)] // limite máximo permitido por chamada
       );
     } catch (error) {
-      console.error("Erro ao buscar documentos:", error);
-      throw new Error("Falha ao recuperar documentos");
+      console.error("Erro ao buscar todos os documentos:", error);
+      throw new Error("Falha ao recuperar todos os documentos");
     }
   }
-
   public async getDocument(docID: string): Promise<Models.Document> {
     try {
       if (!docID) throw new Error("ID do documento é obrigatório");

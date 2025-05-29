@@ -124,7 +124,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "src/components/charts/RevenueTreemapChart"  ],
   
   
   "exclude": [
