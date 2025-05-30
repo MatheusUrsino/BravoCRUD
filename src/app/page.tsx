@@ -28,6 +28,7 @@ import { RevenueTreemapChart } from "@/components/charts/RevenueTreemapChart";
 import { StatusTimelineChart } from "@/components/charts/StatusTimelineChart";
 import { StateMapChart } from "@/components/charts/StateMapChart";
 import { getStateData } from "@/components/charts/getStateData";
+import { useTheme } from "@/context/ThemeContext";
 
 // Tipos e constantes
 type KPIKey = "total" | "concluido" | "erro_login" | "erro_sistema" | "modulo_nao_habilitado" | "sem_acesso" | "pendencia" | "sem_movimento" | "revenue";
@@ -45,12 +46,12 @@ const STATUS_LABELS = [
 
 
 export default function DashboardPage() {
+  const { theme } = useTheme();
   const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
   const [allDocuments, setAllDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedKPIs] = useState<KPIKey[]>(["total", "concluido", "erro_login", "erro_sistema", "modulo_nao_habilitado", "sem_acesso", "pendencia", "sem_movimento", "revenue"]);
   const [showAlert, setShowAlert] = useState(false);
-  const [chartTheme, setChartTheme] = useState<"light" | "dark">("light");
   const [groupBy, setGroupBy] = useState<"month" | "quarter" | "year">("month");
   const [showDataLabels, setShowDataLabels] = useState(false);
   const [showTrendLine, setShowTrendLine] = useState(true);
@@ -433,20 +434,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className={`min-h-screen ${chartTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Head>
         <title>Dashboard Avançado - Gestão de Filiais</title>
         <meta name="description" content="Painel de controle avançado para gestão de filiais e registros fiscais" />
       </Head>
 
-      <header className={`bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg ${chartTheme === 'dark' ? 'border-b border-gray-700' : ''}`}>
+      <header className={`bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg ${theme === 'dark' ? 'border-b border-gray-700' : ''}`}>
         <DashboardHeader />
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Alertas e Notificações */}
         {showAlert && (
-          <div className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-500'} border-l-4`}>
+          <div className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${theme === 'dark' ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-500'} border-l-4`}>
             <FiBell size={20} />
             <div>
               <p className="font-medium">Atenção!</p>
@@ -456,29 +457,50 @@ export default function DashboardPage() {
         )}
 
         {/* Configurações do Dashboard */}
-        <div className={`p-4 rounded-lg mb-6 ${chartTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${chartTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-          <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+        <div
+          className={`p-4 rounded-lg mb-6 shadow-sm border
+    ${theme === 'dark'
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'
+            }`
+          }
+        >
+          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2
+    ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
             <FiSettings /> Configurações do Dashboard
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormControl fullWidth>
-              <InputLabel>Tema dos Gráficos</InputLabel>
-              <Select
-                value={chartTheme}
-                onChange={(e) => setChartTheme(e.target.value as "light" | "dark")}
-                label="Tema dos Gráficos"
+              <InputLabel
+                sx={{
+                  color: theme === 'dark' ? '#e5e7eb' : undefined,
+                  '&.Mui-focused': { color: theme === 'dark' ? '#60a5fa' : undefined }
+                }}
               >
-                <MenuItem value="light">Claro</MenuItem>
-                <MenuItem value="dark">Escuro</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Agrupar por</InputLabel>
+                Agrupar por
+              </InputLabel>
               <Select
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as "month" | "quarter" | "year")}
                 label="Agrupar por"
+                sx={{
+                  color: theme === 'dark' ? '#e5e7eb' : undefined,
+                  '.MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme === 'dark' ? '#374151' : undefined
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme === 'dark' ? '#60a5fa' : undefined
+                  },
+                  background: theme === 'dark' ? '#1f2937' : undefined
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: theme === 'dark' ? '#1f2937' : '#fff',
+                      color: theme === 'dark' ? '#e5e7eb' : '#111'
+                    }
+                  }
+                }}
               >
                 <MenuItem value="month">Mês</MenuItem>
                 <MenuItem value="quarter">Trimestre</MenuItem>
@@ -493,9 +515,18 @@ export default function DashboardPage() {
                     checked={showDataLabels}
                     onChange={() => setShowDataLabels(!showDataLabels)}
                     color="primary"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: theme === 'dark' ? '#60a5fa' : undefined
+                      }
+                    }}
                   />
                 }
-                label="Mostrar valores nos gráficos"
+                label={
+                  <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>
+                    Mostrar valores nos gráficos
+                  </span>
+                }
               />
               <FormControlLabel
                 control={
@@ -503,17 +534,26 @@ export default function DashboardPage() {
                     checked={showTrendLine}
                     onChange={() => setShowTrendLine(!showTrendLine)}
                     color="primary"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: theme === 'dark' ? '#60a5fa' : undefined
+                      }
+                    }}
                   />
                 }
-                label="Mostrar linha de tendência"
+                label={
+                  <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>
+                    Mostrar linha de tendência
+                  </span>
+                }
               />
             </div>
           </div>
         </div>
 
         {/* Filtro Avançado de Registros */}
-        <div className={`p-6 rounded-xl shadow-sm border mb-8 ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+        <div className={`p-6 rounded-xl shadow-sm border mb-8 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
             <FiFilter /> Filtros Avançados
           </h2>
           <RegistrosFilters
@@ -578,12 +618,12 @@ export default function DashboardPage() {
 
         {/* KPIs */}
         <div className="mb-8">
-          <h2 className={`text-lg font-medium mb-2 flex items-center gap-2 ${chartTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+          <h2 className={`text-lg font-medium mb-2 flex items-center gap-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
             <FiBarChart2 /> Indicadores (KPIs)
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {kpiList.filter(kpi => selectedKPIs.includes(kpi.key)).map(kpi => (
-              <div key={kpi.key} className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border ${kpi.color} ${chartTheme === 'dark' ? 'border-gray-700' : ''}`}>
+              <div key={kpi.key} className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border ${kpi.color} ${theme === 'dark' ? 'border-gray-700' : ''}`}>
                 <div className="text-2xl">{kpi.icon}</div>
                 <div>
                   <div className="text-lg font-bold">
@@ -639,19 +679,19 @@ export default function DashboardPage() {
         {/* Gráficos Dinâmicos */}
         {activeChart === "status" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <StatusDonutChart
-                key={JSON.stringify(stats) + chartTheme + showDataLabels}
+                key={JSON.stringify(stats) + theme + showDataLabels}
                 stats={stats}
-                theme={chartTheme}
+                theme={theme}
                 showDataLabels={showDataLabels}
               />
             </div>
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <StatusBarChart
-                key={JSON.stringify(stats) + chartTheme + showDataLabels}
+                key={JSON.stringify(stats) + theme + showDataLabels}
                 stats={stats}
-                theme={chartTheme}
+                theme={theme}
                 showDataLabels={showDataLabels}
               />
             </div>
@@ -660,12 +700,12 @@ export default function DashboardPage() {
 
         {activeChart === "revenue" && (
           <div className="grid grid-cols-1 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <RevenueChart
                 key={
                   JSON.stringify(faturamentoPeriodoLabels) +
                   JSON.stringify(faturamentoPeriodoData) +
-                  chartTheme +
+                  theme +
                   showDataLabels +
                   showTrendLine
                 }
@@ -673,7 +713,7 @@ export default function DashboardPage() {
                   labels: faturamentoPeriodoLabels,
                   values: faturamentoPeriodoData
                 }}
-                theme={chartTheme}
+                theme={theme}
                 showDataLabels={showDataLabels}
                 showTrendLine={showTrendLine}
                 averageRevenue={averageRevenue}
@@ -684,11 +724,11 @@ export default function DashboardPage() {
 
         {activeChart === "state" && (
           <div className="grid grid-cols-1 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <StateMapChart
-                key={JSON.stringify(stateData) + chartTheme}
+                key={JSON.stringify(stateData) + theme}
                 data={stateData}
-                theme={chartTheme}
+                theme={theme}
               />
             </div>
           </div>
@@ -696,11 +736,11 @@ export default function DashboardPage() {
 
         {activeChart === "treemap" && (
           <div className="grid grid-cols-1 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <RevenueTreemapChart
-                key={JSON.stringify(revenueByCompany) + chartTheme}
+                key={JSON.stringify(revenueByCompany) + theme}
                 data={revenueByCompany}
-                theme={chartTheme}
+                theme={theme}
               />
             </div>
           </div>
@@ -708,11 +748,11 @@ export default function DashboardPage() {
 
         {activeChart === "timeline" && (
           <div className="grid grid-cols-1 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <StatusTimelineChart
-                key={JSON.stringify(statusTimelineData) + chartTheme + groupBy}
+                key={JSON.stringify(statusTimelineData) + theme + groupBy}
                 data={statusTimelineData}
-                theme={chartTheme}
+                theme={theme}
                 groupBy={groupBy}
               />
             </div>
@@ -721,10 +761,10 @@ export default function DashboardPage() {
 
         {activeChart === "histogram" && (
           <div className="grid grid-cols-1 gap-6 mb-8">
-            <div className={`p-6 rounded-xl shadow-sm border ${chartTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-6 rounded-xl shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <AliquotaHistogramChart
                 data={aliquotaData}
-                theme={chartTheme}
+                theme={theme}
               />
             </div>
           </div>
@@ -733,18 +773,18 @@ export default function DashboardPage() {
         {/* Últimas Atividades */}
         <div className="mb-8">
           <h2 className={`text-lg font-semibold mb-6 flex items-center gap-2 
-    ${chartTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+    ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             <FiActivity className="text-blue-500" /> Últimas Atividades
           </h2>
           <div className={`
     rounded-2xl shadow border
-    ${chartTheme === 'dark'
+    ${theme === 'dark'
               ? 'bg-[#181a20] border-[#232c3b]'
               : 'bg-white border-[#e5e7eb]'}
     p-0
   `}>
             {recentActivities.length === 0 ? (
-              <div className={`${chartTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'} text-center py-12`}>
+              <div className={`${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} text-center py-12`}>
                 Nenhuma atividade recente encontrada.
               </div>
             ) : (
@@ -754,7 +794,7 @@ export default function DashboardPage() {
                     key={activity.$id}
                     className={`
               flex flex-col sm:flex-row items-start sm:items-center gap-4 px-6 py-5 border-b last:border-b-0
-              ${chartTheme === 'dark'
+              ${theme === 'dark'
                         ? 'border-[#232c3b] hover:bg-[#232c3b]'
                         : 'border-[#f1f5f9] hover:bg-blue-50'}
               transition
@@ -775,23 +815,23 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className={`font-semibold text-base truncate max-w-[180px] 
-                  ${chartTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                           {activity.empresa || "Empresa desconhecida"}
                         </span>
                         {activity.loja && (
                           <span className={`text-xs px-2 py-0.5 rounded 
-                    ${chartTheme === 'dark' ? 'bg-[#232c3b] text-gray-300' : 'bg-[#f1f5f9] text-gray-600'}`}>
+                    ${theme === 'dark' ? 'bg-[#232c3b] text-gray-300' : 'bg-[#f1f5f9] text-gray-600'}`}>
                             {`Loja: ${activity.loja}`}
                           </span>
                         )}
                         {activity.municipio && (
-                          <span className={`text-xs ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-400'}`}>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'}`}>
                             {activity.municipio}
                           </span>
                         )}
                       </div>
                       <div className={`flex flex-wrap items-center gap-4 text-xs 
-                ${chartTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                         {activity.status && (
                           <span>
                             <span className="font-medium">Status:</span>{" "}
@@ -823,16 +863,16 @@ export default function DashboardPage() {
                           : "?"}
                       </Avatar>
                       <div className="flex flex-col">
-                        <span className={`text-xs ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Responsável</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Responsável</span>
                         <span className={`font-medium text-sm truncate max-w-[90px] 
-                  ${chartTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                  ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                           {activity.responsavel || "Não informado"}
                         </span>
                       </div>
                     </div>
                     {/* Data */}
                     <div className={`text-xs whitespace-nowrap min-w-[90px] 
-              ${chartTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                       {activity.$updatedAt ? formatDate(activity.$updatedAt) : ""}
                     </div>
                     {/* Botão Ver detalhes */}
@@ -841,7 +881,7 @@ export default function DashboardPage() {
                       className={`
                 flex items-center gap-2 px-4 py-1.5 rounded-full
                 font-semibold text-xs shadow-sm ml-auto transition
-                ${chartTheme === 'dark'
+                ${theme === 'dark'
                           ? 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500'
                           : 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-500'}
               `}

@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { Storage } from "appwrite";
 import client from "@/config/appwrite.config";
 import { formatCNPJ } from "@/utils/formatters";
+import { useTheme } from "@/context/ThemeContext";
 
 interface FileUploadResult {
     field: string;
@@ -59,6 +60,7 @@ interface RegisterFormData {
 
 const EditRegisterPage = () => {
     const { id } = useParams<{ id: string }>();
+    const { theme } = useTheme();
     const registersService = RegistersService.getInstance();
     const authService = AuthService.getInstance();
     const [loading, setLoading] = useState<boolean>(false);
@@ -183,7 +185,7 @@ const EditRegisterPage = () => {
 
         try {
             const requiredFields = [
-                "empresa", "loja", "docSap", "competencia" , "cnpj_tomador", "im_tomador", "municipio_tomador",
+                "empresa", "loja", "docSap", "competencia", "cnpj_tomador", "im_tomador", "municipio_tomador",
                 "status_empresa", "estado_tomador", "vcto_guias_iss_proprio", "data_emissao"
             ];
 
@@ -428,24 +430,30 @@ const EditRegisterPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-2 sm:px-6 lg:px-8">
+        <div className={theme === "dark"
+            ? "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-2 sm:px-6 lg:px-8"
+            : "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-2 sm:px-6 lg:px-8"
+        }>
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
+                    <h1 className={`text-3xl sm:text-4xl font-extrabold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                         Editar Registro
                     </h1>
-                    <p className="text-base sm:text-lg text-gray-600">
+                    <p className={`text-base sm:text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                         Atualize os campos necessários para o registro #{id}
                     </p>
                 </div>
 
-                <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+                <div className={theme === "dark"
+                    ? "bg-gray-800 shadow-xl rounded-2xl overflow-hidden"
+                    : "bg-white shadow-xl rounded-2xl overflow-hidden"
+                }>
                     <div className="p-4 sm:p-8">
-                        <div className="border-b border-gray-200 pb-4 mb-4">
-                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
+                        <div className={`border-b pb-4 mb-4 ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+                            <h2 className={`text-xl sm:text-2xl font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
                                 Edição de Registro
                             </h2>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className={`mt-1 text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                                 Atualize as informações conforme necessário
                             </p>
                         </div>
@@ -483,8 +491,8 @@ const EditRegisterPage = () => {
                                     {
                                         name: "competencia",
                                         label: "COMPETÊNCIA",
-                                        type: "month", // Mostra apenas mês e ano
-                                        value: register.competencia ? register.competencia.slice(0, 7) : "", // "YYYY-MM"
+                                        type: "month",
+                                        value: register.competencia ? register.competencia.slice(0, 7) : "",
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
@@ -661,7 +669,7 @@ const EditRegisterPage = () => {
                                         name: "vl_issqn",
                                         label: "VL. ISSQN",
                                         type: "text",
-                                        value: formatCurrency(Number(register.vl_issqn) || 0), // Formata só para mostrar
+                                        value: formatCurrency(Number(register.vl_issqn) || 0),
                                         placeholder: "0,00",
                                         mask: "currency",
                                         readOnly: true,
@@ -759,12 +767,12 @@ const EditRegisterPage = () => {
                                         accept: "application/pdf",
                                         description: currentFiles.pdf_anexo1 ? (
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-sm text-gray-500">Arquivo atual: </span>
+                                                <span className={theme === "dark" ? "text-sm text-gray-300" : "text-sm text-gray-500"}>Arquivo atual: </span>
                                                 <a
                                                     href={currentFiles.pdf_anexo1.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-sm text-indigo-600 hover:underline"
+                                                    className={theme === "dark" ? "text-sm text-indigo-300 hover:underline" : "text-sm text-indigo-600 hover:underline"}
                                                 >
                                                     {currentFiles.pdf_anexo1.name}
                                                 </a>
@@ -775,7 +783,7 @@ const EditRegisterPage = () => {
                                                         setFileToRemove('pdf_anexo1');
                                                         setShowConfirmModal(true);
                                                     }}
-                                                    className="text-sm text-red-600 hover:text-red-800 ml-2"
+                                                    className={theme === "dark" ? "text-sm text-red-400 hover:text-red-600 ml-2" : "text-sm text-red-600 hover:text-red-800 ml-2"}
                                                 >
                                                     Remover
                                                 </button>
@@ -790,12 +798,12 @@ const EditRegisterPage = () => {
                                         accept: "application/pdf",
                                         description: currentFiles.pdf_anexo2 ? (
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-sm text-gray-500">Arquivo atual: </span>
+                                                <span className={theme === "dark" ? "text-sm text-gray-300" : "text-sm text-gray-500"}>Arquivo atual: </span>
                                                 <a
                                                     href={currentFiles.pdf_anexo2.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-sm text-indigo-600 hover:underline"
+                                                    className={theme === "dark" ? "text-sm text-indigo-300 hover:underline" : "text-sm text-indigo-600 hover:underline"}
                                                 >
                                                     {currentFiles.pdf_anexo2.name}
                                                 </a>
@@ -806,7 +814,7 @@ const EditRegisterPage = () => {
                                                         setFileToRemove('pdf_anexo2');
                                                         setShowConfirmModal(true);
                                                     }}
-                                                    className="text-sm text-red-600 hover:text-red-800 ml-2"
+                                                    className={theme === "dark" ? "text-sm text-red-400 hover:text-red-600 ml-2" : "text-sm text-red-600 hover:text-red-800 ml-2"}
                                                 >
                                                     Remover
                                                 </button>
@@ -816,7 +824,10 @@ const EditRegisterPage = () => {
                                     }
                                 ]}
                                 btnTitle="Atualizar Registro"
-                                btnClass="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200"
+                                btnClass={`w-full mt-5 font-medium transition-colors duration-200 rounded-lg py-3 px-4 ${theme === "dark"
+                                        ? "bg-indigo-700 hover:bg-indigo-800 text-white"
+                                        : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    }`}
                                 gridClass="grid grid-cols-1 sm:grid-cols-2 gap-6"
                             />
                         ) : (
@@ -826,7 +837,9 @@ const EditRegisterPage = () => {
                                 </div>
                                 <button
                                     onClick={() => router.push("/registros")}
-                                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto"
+                                    className={theme === "dark"
+                                        ? "mt-4 px-6 py-2 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 transition-colors w-full sm:w-auto"
+                                        : "mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto"}
                                 >
                                     Voltar para a lista
                                 </button>
@@ -839,18 +852,22 @@ const EditRegisterPage = () => {
             {/* Modal de confirmação */}
             {showConfirmModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-                        <h3 className="text-lg font-semibold mb-4">Remover arquivo</h3>
-                        <p className="mb-6">Tem certeza que deseja remover este arquivo? Esta ação não pode ser desfeita.</p>
+                    <div className={theme === "dark" ? "bg-gray-800 rounded-lg shadow-lg p-6 max-w-sm w-full" : "bg-white rounded-lg shadow-lg p-6 max-w-sm w-full"}>
+                        <h3 className={theme === "dark" ? "text-lg font-semibold mb-4 text-gray-100" : "text-lg font-semibold mb-4"}>Remover arquivo</h3>
+                        <p className={theme === "dark" ? "mb-6 text-gray-300" : "mb-6"}>Tem certeza que deseja remover este arquivo? Esta ação não pode ser desfeita.</p>
                         <div className="flex justify-end gap-2">
                             <button
-                                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                className={theme === "dark"
+                                    ? "px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-200"
+                                    : "px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800"}
                                 onClick={() => setShowConfirmModal(false)}
                             >
                                 Cancelar
                             </button>
                             <button
-                                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
+                                className={theme === "dark"
+                                    ? "px-4 py-2 rounded bg-red-700 hover:bg-red-800 text-white"
+                                    : "px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white"}
                                 onClick={async () => {
                                     if (fileToRemove) {
                                         await handleRemoveFile(fileToRemove);

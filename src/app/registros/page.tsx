@@ -13,9 +13,11 @@ import { toast } from "react-toastify";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function RegistrosPage() {
     // Estados principais
+    const { theme } = useTheme();
     const [user, setUser] = useState<any>(null);
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -439,108 +441,124 @@ export default function RegistrosPage() {
     const canNext = currentPage < totalPages;
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <RegistrosHeader
-                onExport={exportToExcel}
-                hasData={filteredDocuments.length > 0}
-                onImport={handleImport}
-            />
+    <div className={theme === "dark" ? "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" : "min-h-screen bg-gray-50"}>
+        <RegistrosHeader
+            onExport={exportToExcel}
+            hasData={filteredDocuments.length > 0}
+            onImport={handleImport}
+        />
 
-            <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-                    <RegistrosFilters
-                        filters={filters}
-                        newFilterField={newFilterField}
-                        newFilterValue={newFilterValue}
-                        newFilterType={newFilterType}
-                        dateFilterValue={dateFilterValue}
-                        availableFields={availableFields}
-                        onAddFilter={addFilter}
-                        onRemoveFilter={removeFilter}
-                        onFieldChange={handleFieldChange}
-                        onValueChange={setNewFilterValue}
-                        onDateChange={(date: Date | undefined) => setDateFilterValue(date ? date.toISOString().split('T')[0] : "")}
-                        onClearValue={() => setNewFilterValue("")}
-                        datePickerOpen={datePickerOpen}
-                        setDatePickerOpen={setDatePickerOpen}
-                    />
+        <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <div className={theme === "dark" ? "bg-gray-800 rounded-lg shadow-md p-4 mb-6" : "bg-white rounded-lg shadow-md p-4 mb-6"}>
+                <RegistrosFilters
+                    filters={filters}
+                    newFilterField={newFilterField}
+                    newFilterValue={newFilterValue}
+                    newFilterType={newFilterType}
+                    dateFilterValue={dateFilterValue}
+                    availableFields={availableFields}
+                    onAddFilter={addFilter}
+                    onRemoveFilter={removeFilter}
+                    onFieldChange={handleFieldChange}
+                    onValueChange={setNewFilterValue}
+                    onDateChange={(date: Date | undefined) => setDateFilterValue(date ? date.toISOString().split('T')[0] : "")}
+                    onClearValue={() => setNewFilterValue("")}
+                    datePickerOpen={datePickerOpen}
+                    setDatePickerOpen={setDatePickerOpen}
+                />
+            </div>
+
+            {/* Paginação melhorada */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                <div className="flex items-center gap-2">
+                    <label className="mr-2 font-medium">Registros por página:</label>
+                    <select
+                        value={pageSize}
+                        onChange={e => {
+                            setPageSize(Number(e.target.value));
+                            setCurrentPage(1);
+                        }}
+                        className={theme === "dark"
+                            ? "border border-gray-700 rounded-lg px-3 py-2 bg-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-150 text-gray-100 font-medium hover:border-indigo-500"
+                            : "border border-gray-400 rounded-lg px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 text-gray-700 font-medium hover:border-blue-500"}
+                    >
+                        {[10, 30, 50, 100].map(size => (
+                            <option key={size} value={size}>{size}</option>
+                        ))}
+                    </select>
                 </div>
-
-                {/* Paginação melhorada */}
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                    <div className="flex items-center gap-2">
-                        <label className="mr-2 font-medium">Registros por página:</label>
-                        <select
-                            value={pageSize}
-                            onChange={e => {
-                                setPageSize(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="border border-gray-400 rounded-lg px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 text-gray-700 font-medium hover:border-blue-500"
-                        >
-                            {[10, 30, 50, 100].map(size => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={!canPrev}
-                            className={`p-2 rounded border ${canPrev ? 'hover:bg-blue-100 text-blue-700' : 'text-gray-400 cursor-not-allowed'}`}
-                            title="Página anterior"
-                        >
-                            <FiChevronLeft size={18} />
-                        </button>
-                        <span className="font-medium text-gray-700">
-                            Página {currentPage} de {totalPages}
-                        </span>
-                        <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            disabled={!canNext}
-                            className={`p-2 rounded border ${canNext ? 'hover:bg-blue-100 text-blue-700' : 'text-gray-400 cursor-not-allowed'}`}
-                            title="Próxima página"
-                        >
-                            <FiChevronRight size={18} />
-                        </button>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={!canPrev}
+                        className={`p-2 rounded border ${canPrev
+                            ? (theme === "dark"
+                                ? "hover:bg-indigo-900 text-indigo-400 border-gray-700"
+                                : "hover:bg-blue-100 text-blue-700 border-gray-300")
+                            : (theme === "dark"
+                                ? "text-gray-600 border-gray-700 cursor-not-allowed"
+                                : "text-gray-400 border-gray-300 cursor-not-allowed")}`}
+                        title="Página anterior"
+                    >
+                        <FiChevronLeft size={18} />
+                    </button>
+                    <span className={theme === "dark" ? "font-medium text-gray-100" : "font-medium text-gray-700"}>
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={!canNext}
+                        className={`p-2 rounded border ${canNext
+                            ? (theme === "dark"
+                                ? "hover:bg-indigo-900 text-indigo-400 border-gray-700"
+                                : "hover:bg-blue-100 text-blue-700 border-gray-300")
+                            : (theme === "dark"
+                                ? "text-gray-600 border-gray-700 cursor-not-allowed"
+                                : "text-gray-400 border-gray-300 cursor-not-allowed")}`}
+                        title="Próxima página"
+                    >
+                        <FiChevronRight size={18} />
+                    </button>
                 </div>
+            </div>
 
-                <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div className="text-sm text-gray-600">
-                        {filteredDocuments.length} {filteredDocuments.length === 1 ? 'registro' : 'registros'} encontrados
-                    </div>
-                    {filters.length > 0 && (
-                        <button
-                            onClick={() => setFilters([])}
-                            className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
-                        >
-                            <FiX size={14} /> Limpar todos os filtros
-                        </button>
-                    )}
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className={theme === "dark" ? "text-sm text-gray-300" : "text-sm text-gray-600"}>
+                    {filteredDocuments.length} {filteredDocuments.length === 1 ? 'registro' : 'registros'} encontrados
                 </div>
+                {filters.length > 0 && (
+                    <button
+                        onClick={() => setFilters([])}
+                        className={theme === "dark"
+                            ? "text-sm text-red-400 hover:text-red-600 flex items-center gap-1"
+                            : "text-sm text-red-600 hover:text-red-800 flex items-center gap-1"}
+                    >
+                        <FiX size={14} /> Limpar todos os filtros
+                    </button>
+                )}
+            </div>
 
-                <div className="overflow-x-auto">
-                    <RegistrosTable
-                        filteredDocuments={paginatedDocuments}
-                        filters={filters}
-                        sortConfig={sortConfig}
-                        expandedRow={expandedRow}
-                        userNames={userNames}
-                        onRequestSort={requestSort}
-                        onExpandRow={(id) => setExpandedRow(expandedRow === id ? null : id)}
-                        onSelectForDeletion={handleSelectForDeletion}
-                        onClearFilters={() => setFilters([])}
-                        onDownloadPdf={downloadPdf}
-                    />
-                </div>
-            </main>
+            <div className="overflow-x-auto">
+                <RegistrosTable
+                    filteredDocuments={paginatedDocuments}
+                    filters={filters}
+                    sortConfig={sortConfig}
+                    expandedRow={expandedRow}
+                    userNames={userNames}
+                    onRequestSort={requestSort}
+                    onExpandRow={(id) => setExpandedRow(expandedRow === id ? null : id)}
+                    onSelectForDeletion={handleSelectForDeletion}
+                    onClearFilters={() => setFilters([])}
+                    onDownloadPdf={downloadPdf}
+                />
+            </div>
+        </main>
 
-            <DeleteConfirmationModal
-                isOpen={showConfirm}
-                onCancel={() => setShowConfirm(false)}
-                onConfirm={handleDelete}
-            />
-        </div>
-    );
+        <DeleteConfirmationModal
+            isOpen={showConfirm}
+            onCancel={() => setShowConfirm(false)}
+            onConfirm={handleDelete}
+        />
+    </div>
+);
 }

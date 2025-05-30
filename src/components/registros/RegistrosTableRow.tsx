@@ -18,6 +18,7 @@ import { FaFilePdf } from "react-icons/fa";
 import { formatCNPJ, formatCurrency } from "@/utils/formatters";
 import { Models } from "appwrite";
 import { JSX } from "react";
+import { useTheme } from "@/context/ThemeContext";
 
 interface RegistrosTableRowProps {
   data: Models.Document & {
@@ -100,6 +101,8 @@ export const RegistrosTableRow = ({
   onSelectForDeletion,
   onDownloadPdf,
 }: RegistrosTableRowProps) => {
+  const { theme } = useTheme();
+
   // Obtém a configuração do status ou usa o padrão
   const statusConfig = data.status
     ? STATUS_CONFIG[data.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.DEFAULT
@@ -108,17 +111,19 @@ export const RegistrosTableRow = ({
   return (
     <tr
       className={`
-        transition-colors cursor-pointer 
-        hover:bg-gray-50 
-        ${isExpanded ? "bg-blue-50" : ""}
-      `}
+      transition-colors cursor-pointer 
+      ${theme === "dark"
+          ? `hover:bg-gray-900 ${isExpanded ? "bg-gray-800" : ""}`
+          : `hover:bg-gray-50 ${isExpanded ? "bg-blue-50" : ""}`
+        }
+    `}
       onClick={() => onExpand(data.$id)}
     >
       {/* Coluna Empresa */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Empresa</span>
-          <span className="font-medium text-gray-900 truncate max-w-[180px]">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Empresa</span>
+          <span className={theme === "dark" ? "font-medium text-gray-100 truncate max-w-[180px]" : "font-medium text-gray-900 truncate max-w-[180px]"}>
             {data.empresa || "-"}
           </span>
         </div>
@@ -127,8 +132,8 @@ export const RegistrosTableRow = ({
       {/* Coluna Loja */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Loja</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Loja</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.loja || "-"}
           </span>
         </div>
@@ -137,8 +142,8 @@ export const RegistrosTableRow = ({
       {/* Coluna Tipo */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Tipo</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Tipo</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.tipo_registro === "PRESTADO" ? "Prestado" :
               data.tipo_registro === "TOMADO" ? "Tomado" : "-"}
           </span>
@@ -148,8 +153,8 @@ export const RegistrosTableRow = ({
       {/* Coluna CNPJ Tomador */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">CNPJ Tomador</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>CNPJ Tomador</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.cnpj_tomador ? formatCNPJ(data.cnpj_tomador) : "-"}
           </span>
         </div>
@@ -158,8 +163,8 @@ export const RegistrosTableRow = ({
       {/* Coluna CNPJ Prestador */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">CNPJ Prestador</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>CNPJ Prestador</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.cnpj_prestador ? formatCNPJ(data.cnpj_prestador) : "-"}
           </span>
         </div>
@@ -168,8 +173,8 @@ export const RegistrosTableRow = ({
       {/* Coluna Número da Nota */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Nº Nota</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Nº Nota</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.numero_nota || "-"}
           </span>
         </div>
@@ -178,8 +183,8 @@ export const RegistrosTableRow = ({
       {/* Coluna Valor ISSQN */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Valor ISSQN</span>
-          <span className="text-gray-900">
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Valor ISSQN</span>
+          <span className={theme === "dark" ? "text-gray-100" : "text-gray-900"}>
             {data.vl_issqn !== undefined && data.vl_issqn !== null && data.vl_issqn !== ""
               ? formatCurrency(Number(data.vl_issqn))
               : "-"}
@@ -190,13 +195,13 @@ export const RegistrosTableRow = ({
       {/* Coluna Status */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Status</span>
+          <span className={theme === "dark" ? "text-xs text-gray-400" : "text-xs text-gray-500"}>Status</span>
           <span
             className={`
-              px-2 py-1 text-xs rounded-full 
-              flex items-center gap-1 w-fit
-              ${statusConfig.color}
-            `}
+            px-2 py-1 text-xs rounded-full 
+            flex items-center gap-1 w-fit
+            ${statusConfig.color}
+          `}
             title={statusConfig.text}
           >
             {statusConfig.icon}
@@ -215,14 +220,14 @@ export const RegistrosTableRow = ({
         <div className="flex justify-end items-center space-x-2">
           {/* Botões de PDF */}
           {(data.pdf_anexo1_id || data.pdf_anexo2_id) && (
-            <div className="flex items-center space-x-1 border-r border-gray-200 pr-2">
+            <div className={theme === "dark" ? "flex items-center space-x-1 border-r border-gray-700 pr-2" : "flex items-center space-x-1 border-r border-gray-200 pr-2"}>
               {data.pdf_anexo1_id && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleViewPdf(data.pdf_anexo1_id!);
                   }}
-                  className="text-orange-600 hover:text-orange-800 transition-colors p-1"
+                  className={theme === "dark" ? "text-orange-400 hover:text-orange-300 transition-colors p-1" : "text-orange-600 hover:text-orange-800 transition-colors p-1"}
                   aria-label="Visualizar Guia de Recolhimento"
                 >
                   <FaFilePdf size={16} />
@@ -234,7 +239,7 @@ export const RegistrosTableRow = ({
                     e.stopPropagation();
                     handleViewPdf(data.pdf_anexo2_id!);
                   }}
-                  className="text-orange-600 hover:text-orange-800 transition-colors p-1"
+                  className={theme === "dark" ? "text-orange-400 hover:text-orange-300 transition-colors p-1" : "text-orange-600 hover:text-orange-800 transition-colors p-1"}
                   aria-label="Visualizar protocolo"
                 >
                   <FaFilePdf size={16} />
@@ -246,7 +251,7 @@ export const RegistrosTableRow = ({
           {/* Botão Editar */}
           <Link
             href={`/registros/edit/${data.$id}`}
-            className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+            className={theme === "dark" ? "text-blue-400 hover:text-blue-200 transition-colors p-1" : "text-blue-600 hover:text-blue-800 transition-colors p-1"}
             aria-label="Editar"
             onClick={(e) => e.stopPropagation()}
           >
@@ -259,7 +264,7 @@ export const RegistrosTableRow = ({
               e.stopPropagation();
               onSelectForDeletion(data.$id);
             }}
-            className="text-red-600 hover:text-red-800 transition-colors p-1"
+            className={theme === "dark" ? "text-red-400 hover:text-red-600 transition-colors p-1" : "text-red-600 hover:text-red-800 transition-colors p-1"}
             aria-label="Excluir"
           >
             <FiTrash2 size={18} />

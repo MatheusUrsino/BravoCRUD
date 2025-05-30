@@ -7,11 +7,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { Navbar } from "@/components";
 import { usePathname } from "next/navigation";
 import Head from "next/head";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { ThemeToggleButton } from "@/components/theme/ThemeToggleButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: 'swap', // Melhora CLS (Cumulative Layout Shift)
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
@@ -20,7 +22,6 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
-// Metadados padrão (ajuste conforme necessário)
 const defaultMetadata = {
   title: "Bravo Crud",
   description: "Site da bravo para a equipe da Casas Bahia",
@@ -28,6 +29,21 @@ const defaultMetadata = {
   ogImage: "/images/og-image.jpg",
   url: "https://bravo-crud.vercel.app/",
 };
+
+function HtmlWithTheme({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+
+  // Garante que a classe 'dark' é aplicada dinamicamente no <html>
+  if (typeof window !== "undefined") {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }
+
+  return <>{children}</>;
+}
 
 export default function RootLayout({
   children,
@@ -38,7 +54,7 @@ export default function RootLayout({
   const showNavbar = !["/login", "/cadastro"].includes(pathname || "");
 
   return (
-    <html lang="pt-br" dir="ltr">
+    <html lang="pt-br" dir="ltr" suppressHydrationWarning>
       <Head>
         {/* Metatags essenciais */}
         <meta charSet="utf-8" />
@@ -79,17 +95,21 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </Head>
-      
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ToastContainer 
-          role="alert"
-          aria-live="assertive"
-          toastClassName="sr-only"
-        />
-        {showNavbar && <Navbar />}
-        <main id="main-content" tabIndex={-1}>
-          {children}
-        </main>
+        <ThemeProvider>
+          <HtmlWithTheme>
+            <ToastContainer 
+              role="alert"
+              aria-live="assertive"
+              toastClassName="sr-only"
+            />
+            {showNavbar && <Navbar />}
+            <main id="main-content" tabIndex={-1}>
+              {children}
+            </main>
+            <ThemeToggleButton />
+          </HtmlWithTheme>
+        </ThemeProvider>
       </body>
     </html>
   );

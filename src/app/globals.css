@@ -1,14 +1,58 @@
 @import "tailwindcss";
 
+/* Animação customizada */
 @keyframes wiggle {
-    0% { transform: rotate(0deg);}
-    15% { transform: rotate(-5deg);}
-    30% { transform: rotate(5deg);}
-    45% { transform: rotate(-5deg);}
-    60% { transform: rotate(5deg);}
-    75% { transform: rotate(-2deg);}
-    100% { transform: rotate(0deg);}
-  }
-  .hover\:animate-wiggle:hover {
-    animation: wiggle 0.5s;
-  }
+  0% { transform: rotate(0deg);}
+  15% { transform: rotate(-5deg);}
+  30% { transform: rotate(5deg);}
+  45% { transform: rotate(-5deg);}
+  60% { transform: rotate(5deg);}
+  75% { transform: rotate(-2deg);}
+  100% { transform: rotate(0deg);}
+}
+.hover\:animate-wiggle:hover {
+  animation: wiggle 0.5s;
+}
+html, body {
+  background-color: #f9fafb; /* light */
+  min-height: 100vh;
+  transition: background 0.2s;
+}
+.dark html, .dark body {
+  background-color: #0f172a; /* dark */
+}
+
+/* Adaptação para dark mode em elementos customizados */
+.main-content {
+  background-color: #f9fafb; /* light */
+  min-height: 100vh;
+  transition: background 0.2s;
+}
+.dark .main-content {
+  background-color: #0f172a; /* dark */
+}
+
+/* Exemplo: estilização global para scrollbars (opcional) */
+::-webkit-scrollbar {
+  width: 8px;
+  background: #e0e7ef;
+}
+::-webkit-scrollbar-thumb {
+  background: #b6c2e1;
+  border-radius: 8px;
+}
+.dark ::-webkit-scrollbar {
+  background: #1e293b;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+/* Fontes customizadas (se necessário) */
+/* 
+body {
+  font-family: var(--font-geist-sans), var(--font-geist-mono), sans-serif;
+}
+*/
+
+/* Outras customizações globais podem ser adicionadas aqui */

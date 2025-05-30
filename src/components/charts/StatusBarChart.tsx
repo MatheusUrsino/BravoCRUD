@@ -105,7 +105,7 @@ export function StatusBarChart({ stats, theme, showDataLabels }: StatusBarChartP
 
   return (
     <div className="h-full">
-      <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+      <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
         <FiBarChart2 /> Status por Quantidade
       </h2>
       {typeof window !== 'undefined' && (

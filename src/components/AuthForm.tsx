@@ -1,8 +1,8 @@
-// components/AuthForm.tsx
 "use client"
 
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./LoadingSpinner";
+import { useTheme } from "@/context/ThemeContext";
 
 interface AuthField {
     name: string;
@@ -28,6 +28,7 @@ const AuthForm = ({ fields, btnTitle, onSubmit, loading, isLogin = false }: Auth
     );
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { theme } = useTheme();
 
     // Validação em tempo real
     useEffect(() => {
@@ -90,7 +91,12 @@ const AuthForm = ({ fields, btnTitle, onSubmit, loading, isLogin = false }: Auth
         <form onSubmit={handleSubmit} className="space-y-4">
             {fields.map((field) => (
                 <div key={field.name} className="space-y-2">
-                    <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
+                    <label
+                        htmlFor={field.name}
+                        className={`block text-sm font-medium ${
+                            theme === "dark" ? "text-gray-100" : "text-gray-700"
+                        }`}
+                    >
                         {field.label}
                         {field.required && <span className="text-red-500">*</span>}
                     </label>
@@ -107,7 +113,9 @@ const AuthForm = ({ fields, btnTitle, onSubmit, loading, isLogin = false }: Auth
                         className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${
                             errors[field.name] 
                                 ? 'border-red-500 focus:ring-red-500' 
-                                : 'border-gray-300 focus:ring-blue-500'
+                                : theme === "dark"
+                                    ? 'border-gray-600 focus:ring-blue-500 bg-gray-800 text-gray-100 placeholder-gray-400'
+                                    : 'border-gray-300 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400'
                         }`}
                     />
                     {errors[field.name] && (
@@ -119,26 +127,44 @@ const AuthForm = ({ fields, btnTitle, onSubmit, loading, isLogin = false }: Auth
             <button
                 type="submit"
                 disabled={loading || !isFormValid() || isSubmitting}
-                className={`w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    loading || !isFormValid() ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
+                    ${loading || !isFormValid() ? 'opacity-70 cursor-not-allowed' : ''}
+                    ${theme === "dark" ? "bg-blue-700 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700"}
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                `}
             >
                 {loading && <LoadingSpinner/>}
                 {btnTitle}
             </button>
 
-            <div className="text-center text-sm text-gray-600 mt-4">
+            <div className={`text-center text-sm mt-4 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+            }`}>
                 {isLogin ? (
                     <>
                         Não tem uma conta?{' '}
-                        <a href="/cadastro" className="font-medium text-blue-600 hover:text-blue-500">
+                        <a
+                            href="/cadastro"
+                            className={`font-medium ${
+                                theme === "dark"
+                                    ? "text-blue-400 hover:text-blue-200"
+                                    : "text-blue-600 hover:text-blue-500"
+                            }`}
+                        >
                             Cadastre-se
                         </a>
                     </>
                 ) : (
                     <>
                         Já tem uma conta?{' '}
-                        <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                        <a
+                            href="/login"
+                            className={`font-medium ${
+                                theme === "dark"
+                                    ? "text-blue-400 hover:text-blue-200"
+                                    : "text-blue-600 hover:text-blue-500"
+                            }`}
+                        >
                             Faça login
                         </a>
                     </>

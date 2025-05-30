@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { AuthService, RegistersService } from "@/service";
 import { FiUser, FiFileText, FiMail, FiCheckCircle } from "react-icons/fi";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function PerfilMembroPage() {
   const params = useParams();
@@ -11,6 +12,28 @@ export default function PerfilMembroPage() {
   const [membro, setMembro] = useState<any>(null);
   const [atividades, setAtividades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { theme } = useTheme();
+
+  // Estilos condicionais
+  const sectionStyles = {
+    light: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200",
+    dark: "bg-gradient-to-br from-blue-950 to-blue-900 border-blue-900"
+  };
+
+  const avatarStyles = {
+    light: "bg-blue-200 text-blue-700 border-blue-400",
+    dark: "bg-blue-900 text-blue-200 border-blue-700"
+  };
+
+  const activityCardStyles = {
+    light: "bg-white border-blue-100 hover:border-blue-300",
+    dark: "bg-blue-950 border-blue-900 hover:border-blue-500"
+  };
+
+  const emptyStateStyles = {
+    light: "bg-white text-gray-500",
+    dark: "bg-blue-950 text-gray-400"
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -57,46 +80,99 @@ export default function PerfilMembroPage() {
     if (id) fetchData();
   }, [id]);
 
-  if (loading) return <div className="p-8">Carregando perfil...</div>;
-  if (!membro) return <div className="p-8">Membro não encontrado.</div>;
+  if (loading) return (
+    <div className={`p-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+      Carregando perfil...
+    </div>
+  );
+
+  if (!membro) return (
+    <div className={`p-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+      Membro não encontrado.
+    </div>
+  );
 
   const nome = membro.user?.name || membro.userId || "Sem nome";
   const email = membro.user?.email || "Sem e-mail";
   const status = membro.confirm ? "Ativo" : "Pendente";
 
   return (
-    <main className="max-w-2xl mx-auto py-10 px-4">
-      <section className="flex flex-col items-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl shadow-lg p-8 mb-10 border border-blue-200">
-        <div className="w-24 h-24 flex items-center justify-center rounded-full bg-blue-200 text-blue-700 font-extrabold text-5xl shadow-inner border-4 border-blue-400 mb-4">
+    <main className={`max-w-2xl mx-auto py-10 px-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Seção do perfil */}
+      <section className={`flex flex-col items-center rounded-3xl shadow-lg p-8 mb-10 border ${
+        theme === 'dark' ? sectionStyles.dark : sectionStyles.light
+      }`}>
+        <div className={`w-24 h-24 flex items-center justify-center rounded-full font-extrabold text-5xl shadow-inner border-4 mb-4 ${
+          theme === 'dark' ? avatarStyles.dark : avatarStyles.light
+        }`}>
           {nome.charAt(0).toUpperCase()}
         </div>
-        <div className="text-2xl font-bold text-blue-900 mb-1 flex items-center gap-2">
-          <FiUser className="text-blue-700" /> {nome}
+        
+        <div className={`text-2xl font-bold mb-1 flex items-center gap-2 ${
+          theme === 'dark' ? 'text-blue-100' : 'text-blue-900'
+        }`}>
+          <FiUser className={theme === 'dark' ? "text-blue-400" : "text-blue-700"} /> 
+          {nome}
         </div>
-        <div className="flex items-center gap-2 text-gray-600 mb-2">
+        
+        <div className={`flex items-center gap-2 mb-2 ${
+          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           <FiMail /> {email}
         </div>
+        
         <div className="flex items-center gap-2 mt-2">
           <FiCheckCircle className={status === "Ativo" ? "text-green-500" : "text-yellow-500"} size={20} />
-          <span className={status === "Ativo" ? "text-green-700 font-semibold" : "text-yellow-700 font-semibold"}>
+          <span className={status === "Ativo" 
+            ? "text-green-700 dark:text-green-400 font-semibold" 
+            : "text-yellow-700 dark:text-yellow-400 font-semibold"
+          }>
             {status}
           </span>
         </div>
       </section>
 
+      {/* Seção de atividades */}
       <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-900">
+        <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${
+          theme === 'dark' ? 'text-blue-100' : 'text-blue-900'
+        }`}>
           <FiFileText /> Últimas Atividades
         </h2>
+        
         <ul className="space-y-4">
           {atividades.length === 0 && (
-            <li className="text-gray-500 text-center bg-white rounded-xl py-8 shadow">Nenhuma atividade encontrada.</li>
+            <li className={`text-center rounded-xl py-8 shadow ${
+              theme === 'dark' ? emptyStateStyles.dark : emptyStateStyles.light
+            }`}>
+              Nenhuma atividade encontrada.
+            </li>
           )}
+          
           {atividades.map((a) => (
-            <li key={a.$id} className="p-5 bg-white rounded-xl shadow flex flex-col border border-blue-100 hover:border-blue-300 transition">
-              <span className="font-semibold text-blue-900">{a.empresa} {a.loja && <span className="text-blue-700">- {a.loja}</span>}</span>
-              <span className="text-sm text-gray-500 mt-1">Atualizado em {new Date(a.$updatedAt).toLocaleString("pt-BR")}</span>
-              <span className="text-xs text-gray-400 mt-1">{a.status_empresa} - {a.status}</span>
+            <li
+              key={a.$id}
+              className={`p-5 rounded-xl shadow flex flex-col border transition ${
+                theme === 'dark' ? activityCardStyles.dark : activityCardStyles.light
+              }`}
+            >
+              <span className={`font-semibold ${
+                theme === 'dark' ? 'text-blue-100' : 'text-blue-900'
+              }`}>
+                {a.empresa} {a.loja && <span className={theme === 'dark' ? "text-blue-400" : "text-blue-700"}>- {a.loja}</span>}
+              </span>
+              
+              <span className={`text-sm mt-1 ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+              }`}>
+                Atualizado em {new Date(a.$updatedAt).toLocaleString("pt-BR")}
+              </span>
+              
+              <span className={`text-xs mt-1 ${
+                theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                {a.status_empresa} - {a.status}
+              </span>
             </li>
           ))}
         </ul>

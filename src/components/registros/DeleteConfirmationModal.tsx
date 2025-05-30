@@ -1,4 +1,5 @@
 import { FiTrash2 } from "react-icons/fi";
+import { useTheme } from "@/context/ThemeContext";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -11,31 +12,77 @@ export const DeleteConfirmationModal = ({
   onCancel,
   onConfirm,
 }: DeleteConfirmationModalProps) => {
+  const { theme } = useTheme();
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full animate-fade-in">
+    <div
+      className={
+        theme === "dark"
+          ? "fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(16,23,42,0.85)]"
+          : "fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(30,64,175,0.38)]"
+      }
+    >
+      <div
+        className={
+          theme === "dark"
+            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-950 rounded-2xl p-8 shadow-2xl max-w-md w-full animate-fade-in border border-blue-900"
+            : "bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full animate-fade-in border border-blue-100"
+        }
+      >
         <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-            <FiTrash2 className="h-6 w-6 text-red-600" />
+          <div
+            className={
+              theme === "dark"
+                ? "mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-900/20"
+                : "mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100"
+            }
+          >
+            <FiTrash2 className="h-7 w-7 text-red-600" />
           </div>
-          <h3 className="mt-3 text-lg font-medium text-gray-900">Confirmar exclusão</h3>
-          <div className="mt-2 text-sm text-gray-500">
-            <p>Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.</p>
+          <h3
+            className={
+              theme === "dark"
+                ? "mt-4 text-xl font-semibold text-blue-100"
+                : "mt-4 text-xl font-semibold text-gray-900"
+            }
+          >
+            Confirmar exclusão
+          </h3>
+          <div
+            className={
+              theme === "dark"
+                ? "mt-2 text-base text-blue-200"
+                : "mt-2 text-base text-gray-600"
+            }
+          >
+            <p>
+              Tem certeza que deseja excluir este registro?{" "}
+              <span className={theme === "dark" ? "text-red-300 font-semibold" : "text-red-600 font-semibold"}>
+                Esta ação não pode ser desfeita.
+              </span>
+            </p>
           </div>
         </div>
-        <div className="mt-5 flex justify-center gap-4">
+        <div className="mt-7 flex justify-center gap-4">
           <button
             type="button"
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className={
+              theme === "dark"
+                ? "px-5 py-2 rounded-lg text-sm font-medium text-blue-200 bg-blue-950 border border-blue-800 hover:bg-blue-900 transition focus:outline-none focus:ring-2 focus:ring-blue-700"
+                : "px-5 py-2 rounded-lg text-sm font-medium text-blue-900 bg-blue-100 border border-blue-200 hover:bg-blue-200 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+            }
             onClick={onCancel}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className={
+              theme === "dark"
+                ? "px-5 py-2 rounded-lg text-sm font-medium text-white bg-red-700 hover:bg-red-800 transition focus:outline-none focus:ring-2 focus:ring-red-500"
+                : "px-5 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500"
+            }
             onClick={onConfirm}
           >
             Confirmar

@@ -1,32 +1,31 @@
-// app/cadastro/page.tsx
 "use client"
-
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import AuthForm from "../../components/AuthForm";
 import { AuthService } from "../../service";
+import { useTheme } from "@/context/ThemeContext";
 
 const RegisterPage = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
+    const { theme } = useTheme();
 
     const handleSubmit = async (data: Record<string, string>) => {
-        const { userId,  email, password, name } = data;
-        
+        const { userId, email, password, name } = data;
+
         try {
             const authService = AuthService.getInstance();
             setLoading(true);
-            
-            await authService.register({ 
+
+            await authService.register({
                 userId: userId.trim(),
                 email: email.trim().toLowerCase(),
                 password: password.trim(),
                 name: name.trim()
-
             });
-            
+
             toast.success("Cadastro realizado com sucesso!");
             router.push("/login");
         } catch (err: any) {
@@ -38,12 +37,36 @@ const RegisterPage = () => {
     };
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+        <main className={`
+            min-h-screen flex items-center justify-center p-4
+            ${theme === "dark"
+                ? "bg-gray-900 text-gray-100"
+                : "bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800"}
+        `}>
+            <div className={`
+                w-full max-w-md rounded-xl shadow-lg overflow-hidden
+                ${theme === "dark"
+                    ? "bg-gray-800"
+                    : "bg-white"}
+            `}>
                 <div className="p-8">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800">Crie sua conta</h1>
-                        <p className="text-gray-600 mt-2">Preencha os dados abaixo para se registrar</p>
+                        <h1 className={`
+                            text-3xl font-bold
+                            ${theme === "dark"
+                                ? "text-white"
+                                : "text-gray-800"}
+                        `}>
+                            Crie sua conta
+                        </h1>
+                        <p className={`
+                            mt-2
+                            ${theme === "dark"
+                                ? "text-gray-400"
+                                : "text-gray-600"}
+                        `}>
+                            Preencha os dados abaixo para se registrar
+                        </p>
                     </div>
 
                     <AuthForm
@@ -85,6 +108,8 @@ const RegisterPage = () => {
                         ]}
                         btnTitle="Cadastrar"
                     />
+
+                  
                 </div>
             </div>
         </main>

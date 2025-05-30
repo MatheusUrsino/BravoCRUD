@@ -25,8 +25,8 @@ export function RevenueChart({
   averageRevenue
 }: RevenueChartProps) {
   const chartThemeConfig = {
-    light: { textColor: "#374151", background: "#fff" },
-    dark: { textColor: "#f3f4f6", background: "#1f2937" }
+    light: { textColor: "#374151", background: "#fff", grid: "#e5e7eb" },
+    dark: { textColor: "#f3f4f6", background: "#1f2937", grid: "#374151" }
   };
   const currentTheme = chartThemeConfig[theme];
 
@@ -35,7 +35,9 @@ export function RevenueChart({
     xaxis: {
       categories: data.labels,
       labels: { style: { colors: currentTheme.textColor } },
-      title: { text: "Período" }
+      title: { text: "Período", style: { color: currentTheme.textColor } },
+      axisBorder: { color: currentTheme.grid },
+      axisTicks: { color: currentTheme.grid }
     },
     yaxis: {
       labels: {
@@ -43,7 +45,12 @@ export function RevenueChart({
         formatter: (val: number) =>
           val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
       },
-      title: { text: "Faturamento (R$)" }
+      title: { text: "Faturamento (R$)", style: { color: currentTheme.textColor } },
+      axisBorder: { color: currentTheme.grid },
+      axisTicks: { color: currentTheme.grid }
+    },
+    grid: {
+      borderColor: currentTheme.grid
     },
     dataLabels: {
       enabled: showDataLabels,
@@ -80,7 +87,7 @@ export function RevenueChart({
 
   return (
     <div>
-      <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+      <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
         <FiTrendingUp /> Faturamento por Período
       </h2>
       <Chart

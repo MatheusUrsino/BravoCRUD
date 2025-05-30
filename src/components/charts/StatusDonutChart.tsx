@@ -106,9 +106,9 @@ export function StatusDonutChart({ stats, theme, showDataLabels }: StatusDonutCh
     stats.sem_movimento
   ];
 
-  return (
+return (
     <div className="h-full">
-      <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+      <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 ${theme === "dark" ? "text-gray-100" : "text-gray-800"}`}>
         <FiPieChart /> Distribuição dos Status
       </h2>
       {typeof window !== 'undefined' && (
@@ -123,7 +123,7 @@ export function StatusDonutChart({ stats, theme, showDataLabels }: StatusDonutCh
         {STATUS_LABELS.map((s, idx) => (
           <span key={s.key} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ background: s.color + "22", color: s.color }}>
             <span className="font-medium">{s.label}</span>
-            <span className="ml-1 text-gray-500">{series[idx]}</span>
+            <span className={theme === "dark" ? "ml-1 text-gray-300" : "ml-1 text-gray-500"}>{series[idx]}</span>
           </span>
         ))}
       </div>

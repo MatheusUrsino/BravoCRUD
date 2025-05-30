@@ -4,13 +4,14 @@ import { usePathname } from "next/navigation"
 import { type FC, useState } from "react"
 import LoadingSpinner from "./LoadingSpinner"
 import { formatCNPJ, formatCurrency, formatDate, formatPercentage } from "../utils/formatters"
+import { useTheme } from "@/context/ThemeContext"
 
 interface IField {
     name?: string
     label?: string
     type: string
     value?: string | number | null
- placeholder?: string
+    placeholder?: string
     required?: boolean
     options?: Array<{ value: string; label: string }>
     pattern?: string
@@ -70,6 +71,7 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
     const handleFileChange = (name: string, file: File | null) => {
         setFiles({ ...files, [name]: file })
     }
+    const {theme} = useTheme();
 
     const formatValue = (value: string, mask?: string) => {
         if (!value) return ""
@@ -108,24 +110,31 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
 
     return (
         <form onSubmit={handleSubmit} className="w-full p-2 sm:p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6`}>
                 {fields.map((field: IField, index: number) =>
                     field.type === "section" ? (
                         <div key={index} className="col-span-full my-4">
-                            <h3 className="text-lg font-semibold text-indigo-700 border-b border-indigo-200 pb-1 mb-2">{field.label}</h3>
+                            <h3 className={`text-lg font-semibold border-b pb-1 mb-2 
+                            ${theme === "dark" ? "text-indigo-300 border-indigo-700" : "text-indigo-700 border-indigo-200"}`}>
+                                {field.label}
+                            </h3>
                         </div>
                     ) : (
                         <div
                             key={index}
                             className={`w-full ${field.containerClass || ""} sm:col-span-auto`}
                         >
-                            <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
+                            <label
+                                htmlFor={field.name}
+                                className={`block text-sm font-medium mb-1 
+                                ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
                                 {field.label}
                                 {field.required && <span className="text-red-500"> *</span>}
                             </label>
 
                             {field.description && (
-                                <div className="text-xs sm:text-sm text-gray-500 mb-2">
+                                <div className={`text-xs sm:text-sm mb-2 
+                                ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                                     {field.description}
                                 </div>
                             )}
@@ -138,7 +147,11 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
                                     onChange={(e) => handleChange(field.name!, e.target.value)}
                                     required={field.required}
                                     disabled={field.readOnly || loading}
-                                    className={`mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                    className={`mt-1 block w-full rounded-md border py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm
+                                    ${theme === "dark"
+                                            ? "bg-gray-800 border-gray-700 text-gray-100"
+                                            : "border-gray-300 bg-white text-gray-900"}
+                                    ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                 >
                                     {field.options?.map((option, i) => (
                                         <option key={i} value={option.value}>
@@ -160,16 +173,18 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
                                         }}
                                         required={field.required}
                                         disabled={field.readOnly || loading}
-                                        className={`block w-full text-xs sm:text-sm text-gray-600 rounded-md border border-gray-300 shadow-sm
-                                            file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                                            file:rounded-md file:border-0
-                                            file:text-xs sm:file:text-sm file:font-medium
-                                            file:bg-indigo-50 file:text-indigo-700
-                                            hover:file:bg-indigo-100 ${field.readOnly || loading ? "opacity-50 cursor-not-allowed" : ""
-                                            }`}
+                                        className={`block w-full text-xs sm:text-sm rounded-md border shadow-sm
+                                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-xs sm:file:text-sm file:font-medium
+                                        ${theme === "dark"
+                                                ? "text-gray-200 border-gray-700 file:bg-indigo-900 file:text-indigo-200 hover:file:bg-indigo-800 bg-gray-800"
+                                                : "text-gray-600 border-gray-300 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 bg-white"}
+                                        ${field.readOnly || loading ? "opacity-50 cursor-not-allowed" : ""}`}
                                     />
                                     {files[field.name!] && (
-                                        <p className="text-xs text-indigo-600 mt-1 truncate">
+                                        <p className={`text-xs mt-1 truncate 
+                                        ${theme === "dark" ? "text-indigo-300" : "text-indigo-600"}`}>
                                             Arquivo selecionado: {files[field.name!]?.name}
                                         </p>
                                     )}
@@ -185,8 +200,11 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
                                     readOnly={field.readOnly}
                                     disabled={field.readOnly || loading}
                                     rows={4}
-                                    className={`mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""
-                                        }`}
+                                    className={`mt-1 block w-full rounded-md border py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm
+                                    ${theme === "dark"
+                                            ? "bg-gray-800 border-gray-700 text-gray-100"
+                                            : "border-gray-300 bg-white text-gray-900"}
+                                    ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                 />
                             ) : (
                                 <input
@@ -206,8 +224,11 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
                                     step={field.step}
                                     readOnly={field.readOnly}
                                     disabled={field.readOnly || loading}
-                                    className={`mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""
-                                        }`}
+                                    className={`mt-1 block w-full rounded-md border py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 text-sm
+                                    ${theme === "dark"
+                                            ? "bg-gray-800 border-gray-700 text-gray-100"
+                                            : "border-gray-300 bg-white text-gray-900"}
+                                    ${field.readOnly ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                 />
                             )}
                         </div>
@@ -216,7 +237,8 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
             </div>
 
             {["/login", "/cadastro"].includes(pathname) && (
-                <p className="text-center sm:text-end w-full text-xs sm:text-sm text-gray-600 mt-3 sm:mt-4">
+                <p className={`text-center sm:text-end w-full text-xs sm:text-sm mt-3 sm:mt-4
+                ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                     {pathname === "/login" ? (
                         <>
                             Não tem uma conta? <Link href="/cadastro" className="text-indigo-600 hover:underline">Clique aqui</Link>
@@ -232,7 +254,11 @@ const Form: FC<IFormProps> = ({ fields, btnTitle, onSubmit, loading, btnClass, g
             <div className="flex justify-center sm:justify-start mt-4 sm:mt-6">
                 <button
                     type="submit"
-                    className={`${btnClass || 'bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md'} w-full sm:w-auto`}
+                    className={`${btnClass ||
+                        (theme === "dark"
+                            ? "bg-indigo-700 hover:bg-indigo-800 text-white font-medium py-2 px-4 rounded-md"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md")
+                        } w-full sm:w-auto`}
                     disabled={loading}
                 >
                     {loading ? (

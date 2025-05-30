@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { Filter } from "@/types/registros";
 import { FiFilter, FiX } from "react-icons/fi";
 
@@ -53,6 +54,8 @@ export function RegistrosFilters({
   datePickerOpen,
   setDatePickerOpen,
 }: RegistrosFiltersProps) {
+  const { theme } = useTheme();
+
   const handleFieldSelection = (value: string) => {
     onFieldChange(value);
     // O tipo será determinado pelo campo selecionado
@@ -62,18 +65,20 @@ export function RegistrosFilters({
   const hasOptions = selectedField && Array.isArray(selectedField.options);
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow mb-6">
+    <div className={theme === "dark" ? "bg-gray-900 p-4 rounded-lg shadow mb-6" : "bg-white p-4 rounded-lg shadow mb-6"}>
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Campo */}
         <div className="flex-1">
-          <label htmlFor="filter-field" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="filter-field" className={theme === "dark" ? "block text-sm font-medium text-gray-200 mb-1" : "block text-sm font-medium text-gray-700 mb-1"}>
             Campo
           </label>
           <select
             id="filter-field"
             value={newFilterField}
             onChange={(e) => handleFieldSelection(e.target.value)}
-            className="w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={theme === "dark"
+              ? "w-full rounded-md border border-gray-700 bg-gray-800 text-gray-100 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              : "w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
           >
             <option value="all">Todos os campos</option>
             {availableFields.map((field) => (
@@ -86,7 +91,7 @@ export function RegistrosFilters({
 
         {/* Valor */}
         <div className="flex-1">
-          <label htmlFor="filter-input" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="filter-input" className={theme === "dark" ? "block text-sm font-medium text-gray-200 mb-1" : "block text-sm font-medium text-gray-700 mb-1"}>
             Valor
           </label>
           {newFilterType === "date" ? (
@@ -102,7 +107,9 @@ export function RegistrosFilters({
               type="month"
               value={newFilterValue}
               onChange={e => onValueChange(e.target.value)}
-              className="w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={theme === "dark"
+                ? "w-full rounded-md border border-gray-700 bg-gray-800 text-gray-100 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                : "w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
               placeholder="Selecione o mês/ano"
             />
           ) : hasOptions ? (
@@ -110,7 +117,9 @@ export function RegistrosFilters({
               id="filter-select"
               value={newFilterValue}
               onChange={(e) => onValueChange(e.target.value)}
-              className="w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={theme === "dark"
+                ? "w-full rounded-md border border-gray-700 bg-gray-800 text-gray-100 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                : "w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
             >
               <option value="">Selecione...</option>
               {selectedField?.options?.map((opt) => (
@@ -126,13 +135,15 @@ export function RegistrosFilters({
                 type="text"
                 value={newFilterValue}
                 onChange={(e) => onValueChange(e.target.value)}
-                className="w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={theme === "dark"
+                  ? "w-full rounded-md border border-gray-700 bg-gray-800 text-gray-100 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  : "w-full rounded-md border border-gray-300 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                 placeholder="Digite o valor para filtrar..."
               />
               {newFilterValue && (
                 <button
                   onClick={onClearValue}
-                  className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                  className={theme === "dark" ? "absolute right-2 top-2 text-gray-400 hover:text-gray-200" : "absolute right-2 top-2 text-gray-500 hover:text-gray-700"}
                   type="button"
                 >
                   <FiX size={18} />
@@ -182,13 +193,21 @@ export function RegistrosFilters({
             return (
               <div
                 key={filter.id}
-                className="bg-cyan-100 rounded-full px-3 py-1 text-sm flex items-center gap-2 transition-transform duration-300 hover:animate-wiggle"
+                className={
+                  theme === "dark"
+                    ? "bg-blue-950 border border-blue-900 rounded-full px-3 py-1 text-sm flex items-center gap-2 transition-transform duration-300 hover:animate-wiggle"
+                    : "bg-blue-100 border border-blue-200 rounded-full px-3 py-1 text-sm flex items-center gap-2 transition-transform duration-300 hover:animate-wiggle"
+                }
               >
-                <span className="font-medium">{fieldLabel}:</span>
-                <span>{displayValue}</span>
+                <span className={theme === "dark" ? "font-medium text-blue-200" : "font-medium text-blue-900"}>
+                  {fieldLabel}:
+                </span>
+                <span className={theme === "dark" ? "text-blue-300" : "text-blue-800"}>
+                  {displayValue}
+                </span>
                 <button
                   onClick={() => onRemoveFilter(filter.id)}
-                  className="ml-1 text-cyan-700 hover:text-cyan-900"
+                  className={theme === "dark" ? "ml-1 text-blue-400 hover:text-blue-200" : "ml-1 text-blue-700 hover:text-blue-900"}
                   type="button"
                 >
                   <FiX size={14} />
