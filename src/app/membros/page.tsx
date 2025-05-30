@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AuthService } from "@/service";
 import { FiUser, FiMail, FiCheckCircle } from "react-icons/fi";
+import MembrosSearch from "@/components/usuarios/MembrosSearch";
 
 export default function MembrosPage() {
   const [membros, setMembros] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     async function fetchMembros() {
@@ -45,6 +47,14 @@ export default function MembrosPage() {
     fetchMembros();
   }, []);
 
+  // Filtra membros conforme busca
+  const membrosFiltrados = membros.filter((m: any) => {
+    const nome = m.user?.name?.toLowerCase() || "";
+    const email = m.user?.email?.toLowerCase() || "";
+    const termo = busca.toLowerCase();
+    return nome.includes(termo) || email.includes(termo);
+  });
+
   if (loading) return <div className="p-8">Carregando membros...</div>;
 
   return (
@@ -52,13 +62,14 @@ export default function MembrosPage() {
       <h1 className="text-3xl font-extrabold mb-8 text-blue-900 flex items-center gap-2">
         <FiUser className="text-blue-700" /> Membros da Equipe
       </h1>
+      <MembrosSearch onSearch={setBusca} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {membros.length === 0 && (
+        {membrosFiltrados.length === 0 && (
           <div className="col-span-2 text-center text-gray-500 py-8">
             Nenhum membro encontrado.
           </div>
         )}
-        {membros.map((m: any) => {
+        {membrosFiltrados.map((m: any) => {
           const nome = m.user?.name || m.userId || "Sem nome";
           const email = m.user?.email || "Sem e-mail";
           const status = m.confirm ? "Ativo" : "Pendente";

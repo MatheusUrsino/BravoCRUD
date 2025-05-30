@@ -6,6 +6,7 @@ interface RegisterData {
   empresa: string;
   loja: number | string;
   docSap: string;
+  competencia: string;
   tipo_registro: string;
   cnpj_tomador: string;
   municipio_tomador: string;

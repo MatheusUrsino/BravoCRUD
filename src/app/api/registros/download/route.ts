@@ -29,8 +29,8 @@ export async function GET(request: Request) {
         
         const fileInfo = await storage.getFile(bucketId, fileId);
 
-        // Gera URL de download do arquivo
-        const fileUrl = storage.getFileDownload(bucketId, fileId);
+        // Gera URL de visualização do arquivo (não download)
+        const fileUrl = storage.getFileView(bucketId, fileId);
 
         return NextResponse.json({
             success: true,

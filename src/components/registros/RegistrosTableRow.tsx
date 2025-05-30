@@ -9,6 +9,7 @@ import {
   FiMinusCircle
 } from "react-icons/fi";
 import {
+  MdCloudOff,
   MdNoAccounts,
   MdOutlineDoNotDisturbAlt
 } from "react-icons/md";
@@ -29,8 +30,6 @@ interface RegistrosTableRowProps {
   onDownloadPdf: (fileId: string, fileName: string) => void;
 }
 
-
-
 /**
  * Mapeamento de status para cores, ícones e labels
  */
@@ -49,6 +48,11 @@ const STATUS_CONFIG = {
     color: "bg-orange-100 text-orange-800",
     text: "Erro de login",
     icon: <MdNoAccounts className="shrink-0" size={16} />,
+  },
+  ERRO_SISTEMA: {
+    color: "bg-yellow-200 text-yellow-800",
+    text: "Erro de sistema",
+    icon: <MdCloudOff className="shrink-0" size={16} />,
   },
   MODULO_NAO_HABILITADO: {
     color: "bg-gray-100 text-gray-800",
@@ -76,27 +80,19 @@ const STATUS_CONFIG = {
     icon: <FiMinusCircle className="shrink-0" size={16} />,
   },
 } as const;
-// Sugestão para sua função de download no front-end
-async function handleDownloadPdf(fileId: string) {
+
+// Função para visualizar PDF em nova aba
+async function handleViewPdf(fileId: string) {
   const res = await fetch(`/api/registros/download?fileId=${fileId}`);
   const data = await res.json();
 
-  if (data.success && data.url && data.filename) {
-    const fileRes = await fetch(data.url);
-    const blob = await fileRes.blob();
-
-    // Cria um link temporário para download
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = data.filename; // Usa o nome real do bucket
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(link.href);
+  if (data.success && data.url) {
+    window.open(data.url, '_blank');
   } else {
-    alert('Erro ao baixar arquivo');
+    alert('Erro ao visualizar arquivo');
   }
 }
+
 export const RegistrosTableRow = ({
   data,
   isExpanded,
@@ -180,7 +176,6 @@ export const RegistrosTableRow = ({
       </td>
 
       {/* Coluna Valor ISSQN */}
-      {/* Coluna Valor ISSQN */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Valor ISSQN</span>
@@ -225,10 +220,10 @@ export const RegistrosTableRow = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadPdf(data.pdf_anexo1_id!);
+                    handleViewPdf(data.pdf_anexo1_id!);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  aria-label="Baixar Guia de Recolhimento"
+                  aria-label="Visualizar Guia de Recolhimento"
                 >
                   <FaFilePdf size={16} />
                 </button>
@@ -237,10 +232,10 @@ export const RegistrosTableRow = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadPdf(data.pdf_anexo2_id!);
+                    handleViewPdf(data.pdf_anexo2_id!);
                   }}
                   className="text-orange-600 hover:text-orange-800 transition-colors p-1"
-                  aria-label="Baixar protocolo"
+                  aria-label="Visualizar protocolo"
                 >
                   <FaFilePdf size={16} />
                 </button>

@@ -6,21 +6,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
-const statusEmpresaOptions = [
-    { value: "ATIVA", label: "Ativa" },
-    { value: "INATIVA", label: "Inativa" },
-    { value: "SUSPENSA", label: "Suspensa" }
-];
 
-const statusOptions = [
-    { value: "CONCLUIDO", label: "Concluído" },
-    { value: "PENDENTE", label: "Pendente" },
-    { value: "ERRO_LOGIN", label: "Erro de login" },
-    { value: "MODULO_NAO_HABILITADO", label: "Módulo de escrituração não habilitado" },
-    { value: "SEM_ACESSO", label: "Sem acesso" },
-    { value: "PENDENCIA", label: "Pendência" },
-    { value: "SEM_MOVIMENTO", label: "Sem movimento" }
-];
+
+
 
 const AddRegisterPage = () => {
     const [loading, setLoading] = useState<boolean>(false);
@@ -88,8 +76,14 @@ const AddRegisterPage = () => {
     ];
 
     const statusOptions = [
-        { value: "Concluído", label: "Concluído" },
-        { value: "Pendente", label: "Pendente" },
+        { value: "", label: "Selecione..." },
+        { value: "CONCLUIDO", label: "Concluído" },
+        { value: "PENDENTE", label: "Pendente" },
+        { value: "ERRO_SISTEMA", label: "Erro de Sistema" },
+        { value: "ERRO_LOGIN", label: "Erro de login" },
+        { value: "MODULO_NAO_HABILITADO", label: "Módulo de escrituração não habilitado" },
+        { value: "SEM_ACESSO", label: "Sem acesso" },
+        { value: "PENDENCIA", label: "Pendência" },
     ];
 
 
@@ -133,11 +127,13 @@ const AddRegisterPage = () => {
     const handleSubmit = async (formData: FormData) => {
         setLoading(true);
         console.log(formData.get('loja'))
+        console.log(formData.get('competencia'))
+
         try {
             // Validação de campos obrigatórios
             const requiredFields = [
-                "empresa", "loja", "docSap", "tipo_registro",
-                "cnpj_tomador", "municipio_tomador", "estado_tomador", "im_tomador",
+                "empresa", "loja", "docSap", "competencia", "tipo_registro",
+                "cnpj_tomador", "municipio_tomador", "estado_tomador",
                 "cnpj_prestador", "municipio_prestador", "estado_prestador",
                 "numero_nota", "data_nota", "codigo_servico",
                 "iss_retido",
@@ -182,10 +178,16 @@ const AddRegisterPage = () => {
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
             const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : "";
 
+            // Formatar data de competência
+            const competenciaMonth = formData.get("competencia")?.toString(); // ex: "2024-06"
+            const competenciaDateTime = competenciaMonth ? `${competenciaMonth}-01T00:00:00.000Z` : "";
+
             // Criar payload com tipos corretos
             const payload = {
                 empresa: formData.get("empresa")?.toString() || '',
-                loja: Number(formData.get("loja")), docSap: formData.get("docSap")?.toString() || '',
+                loja: Number(formData.get("loja")),
+                docSap: formData.get("docSap")?.toString() || '',
+                competencia: competenciaDateTime,
                 // Tomador
                 cnpj_tomador: formData.get("cnpj_tomador")?.toString() || '',
                 municipio_tomador: formData.get("municipio_tomador")?.toString() || '',
@@ -315,6 +317,13 @@ const AddRegisterPage = () => {
                                     name: "docSap",
                                     label: "DOC SAP",
                                     type: "text",
+                                    required: true,
+                                    containerClass: "col-span-1"
+                                },
+                                {
+                                    name: "competencia",
+                                    label: "COMPETÊNCIA",
+                                    type: "month",
                                     required: true,
                                     containerClass: "col-span-1"
                                 },

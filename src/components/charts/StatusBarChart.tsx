@@ -11,6 +11,7 @@ interface StatusBarChartProps {
     total: number;
     concluido: number;
     erro_login: number;
+    erro_sistema: number;
     modulo_nao_habilitado: number;
     sem_acesso: number;
     pendencia: number;
@@ -23,6 +24,7 @@ interface StatusBarChartProps {
 const STATUS_LABELS = [
   { key: "concluido", label: "Concluído", color: "#32CD32" },
   { key: "erro_login", label: "Erro de login", color: "#FF4500" },
+  { key: "erro_sistema", label: "Erro de sistema", color: "#FFD600" },
   { key: "modulo_nao_habilitado", label: "Módulo não habilitado", color: "#6366F1" },
   { key: "sem_acesso", label: "Sem acesso", color: "#3B82F6" },
   { key: "pendencia", label: "Pendência", color: "#FF0000" },
@@ -94,6 +96,7 @@ export function StatusBarChart({ stats, theme, showDataLabels }: StatusBarChartP
   const series = [{ data: [
     stats.concluido,
     stats.erro_login,
+    stats.erro_sistema,
     stats.modulo_nao_habilitado,
     stats.sem_acesso,
     stats.pendencia,

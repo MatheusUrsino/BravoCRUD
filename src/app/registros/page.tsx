@@ -46,7 +46,16 @@ export default function RegistrosPage() {
         { value: "empresa", label: "Empresa", type: "text" },
         { value: "loja", label: "Loja", type: "text" },
         { value: "docSap", label: "Doc SAP", type: "text" },
-        { value: "tipo_registro", label: "Tipo de Registro", type: "text" },
+        { value: "competencia", label: "Competência (Mês/Ano)", type: "month" },
+        {
+            value: "tipo_registro",
+            label: "Tipo de Registro",
+            type: "select",
+            options: [
+                { value: "TOMADO", label: "Tomado" },
+                { value: "PRESTADO", label: "Prestado" }
+            ]
+        },
         { value: "cnpj_tomador", label: "CNPJ Tomador", type: "text" },
         { value: "municipio_tomador", label: "Município Tomador", type: "text" },
         { value: "estado_tomador", label: "Estado Tomador", type: "text" },
@@ -65,14 +74,45 @@ export default function RegistrosPage() {
         { value: "juros", label: "Juros", type: "text" },
         { value: "taxa", label: "Taxa", type: "text" },
         { value: "vl_issqn", label: "VL. ISSQN", type: "text" },
-        { value: "iss_retido", label: "ISS Retido", type: "text" },
-        { value: "status_empresa", label: "Status Empresa", type: "text" },
-        { value: "status", label: "Status Registro", type: "text" },
+        {
+            value: "iss_retido",
+            label: "ISS Retido",
+            type: "select",
+            options: [
+                { value: "Sim", label: "Sim" },
+                { value: "Não", label: "Não" }
+            ]
+        },
+        {
+            value: "status_empresa",
+            label: "Status Empresa",
+            type: "select",
+            options: [
+                { value: "Ativa", label: "Ativa" },
+                { value: "Inativa", label: "Inativa" },
+                { value: "Suspensa", label: "Suspensa" }
+            ]
+        },
+        {
+            value: "status",
+            label: "Status Registro",
+            type: "select",
+            options: [
+                { value: "CONCLUIDO", label: "Concluído" },
+                { value: "PENDENTE", label: "Pendente" },
+                { value: "ERRO_SISTEMA", label: "Erro de Sistema" },
+                { value: "ERRO_LOGIN", label: "Erro de login" },
+                { value: "MODULO_NAO_HABILITADO", label: "Módulo não habilitado" },
+                { value: "SEM_ACESSO", label: "Sem acesso" },
+                { value: "SEM_MOVIMENTO", label: "Sem movimento" },
+                { value: "PENDENCIA", label: "Pendência" }
+            ]
+        },
         { value: "historico", label: "Observação", type: "text" },
         { value: "vcto_guias_iss_proprio", label: "Vencimento da Guia", type: "date" },
         { value: "data_emissao", label: "Data de Emissão", type: "date" },
         { value: "qtd", label: "Quantidade de Nota", type: "text" },
-        { value: "responsavel", label: "Responsável", type: "text" },
+        { value: "responsavel", label: "Responsável", type: "text" }
     ];
 
     // Ordenação
@@ -120,6 +160,14 @@ export default function RegistrosPage() {
         if (filters.length === 0) return sortedDocuments;
         return sortedDocuments.filter((doc: any) => {
             return filters.every(filter => {
+                if (filter.type === "month") {
+                    // Valor salvo: "2024-06", valor no doc: "2024-06-01T00:00:00.000Z"
+                    const docValue = doc[filter.field];
+                    if (!docValue) return false;
+                    // Extrai "YYYY-MM" do valor salvo
+                    const docMonth = docValue.slice(0, 7);
+                    return docMonth === filter.value;
+                }
                 if (filter.type !== "date") {
                     const searchTerm = filter.value.toLowerCase();
                     if (filter.field === "all") {
@@ -196,6 +244,7 @@ export default function RegistrosPage() {
             Empresa: item.empresa || '',
             Loja: item.loja || '',
             DocSAP: item.docSap || '',
+            Competencia: item.competencia ? item.competencia.slice(0, 7) : '',
             TipoRegistro: item.tipo_registro || '',
             CNPJTomador: item.cnpj_tomador || '',
             MunicipioTomador: item.municipio_tomador || '',
@@ -323,6 +372,14 @@ export default function RegistrosPage() {
                         empresa: String(row['Empresa'] || ''),
                         loja: row['Loja'] ? Number(row['Loja']) : 0,
                         docSap: String(row['DocSAP'] || ''),
+                        competencia: row['Competencia']
+                            ? (row['Competencia'].length === 7
+                                ? row['Competencia'] // já está no formato YYYY-MM
+                                : row['Competencia'].length === 7 && row['Competencia'].includes('/')
+                                    ? `${row['Competencia'].slice(3, 7)}-${row['Competencia'].slice(0, 2)}` // converte MM/YYYY para YYYY-MM
+                                    : String(row['Competencia'])
+                            )
+                            : '',
                         tipo_registro: String(row['TipoRegistro'] || ''),
                         cnpj_tomador: String(row['CNPJTomador'] || ''),
                         municipio_tomador: String(row['MunicipioTomador'] || ''),

@@ -44,6 +44,7 @@ export function StatusTimelineChart({ data, theme, groupBy }: StatusTimelineChar
   const statusColors: Record<string, string> = {
     'CONCLUIDO': '#32CD32',
     'ERRO_LOGIN': '#FF4500',
+    'ERRO_SISTEMA': '#FFD600',
     'MODULO_NAO_HABILITADO': '#6366F1',
     'SEM_ACESSO': '#3B82F6',
     'PENDENCIA': '#FF0000',

@@ -47,15 +47,17 @@ class AuthService {
 
   public async register(data: { 
     userId: string; 
-    name: string; 
     email: string; 
-    password: string 
+    password: string,
+    name: string; 
+
   }): Promise<Models.User<Models.Preferences>> {
     return await AuthService.account.create(
       data.userId,
-      data.name,
       data.email,
       data.password,
+      data.name,
+
     );
   }
 

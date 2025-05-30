@@ -13,7 +13,7 @@ const RegisterPage = () => {
     const router = useRouter();
 
     const handleSubmit = async (data: Record<string, string>) => {
-        const { userId, name, email, password } = data;
+        const { userId,  email, password, name } = data;
         
         try {
             const authService = AuthService.getInstance();
@@ -24,6 +24,7 @@ const RegisterPage = () => {
                 email: email.trim().toLowerCase(),
                 password: password.trim(),
                 name: name.trim()
+
             });
             
             toast.success("Cadastro realizado com sucesso!");

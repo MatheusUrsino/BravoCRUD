@@ -24,6 +24,7 @@ interface RegisterFormData {
     empresa: string;
     loja: string | number;
     docSap: string;
+    competencia: string;
     tipo_registro: string;
     cnpj_tomador: string;
     municipio_tomador: string;
@@ -75,6 +76,7 @@ const EditRegisterPage = () => {
         empresa: "",
         loja: "",
         docSap: "",
+        competencia: "",
         tipo_registro: "",
         cnpj_tomador: "",
         municipio_tomador: "",
@@ -181,7 +183,7 @@ const EditRegisterPage = () => {
 
         try {
             const requiredFields = [
-                "empresa", "loja", "docSap", "cnpj_tomador", "im_tomador", "municipio_tomador",
+                "empresa", "loja", "docSap", "competencia" , "cnpj_tomador", "im_tomador", "municipio_tomador",
                 "status_empresa", "estado_tomador", "vcto_guias_iss_proprio", "data_emissao"
             ];
 
@@ -241,14 +243,19 @@ const EditRegisterPage = () => {
                 }
             }
 
+            //formatações de data
             const vctoDate = formData.get("vcto_guias_iss_proprio")?.toString();
             const formattedVctoDate = vctoDate ? `${vctoDate.split('T')[0]}T00:00:00` : null;
+            const competenciaMonth = formData.get("competencia")?.toString(); // ex: "2024-06"
+            const competenciaDateTime = competenciaMonth ? `${competenciaMonth}-01T00:00:00.000Z` : null;
+
 
             // Criar payload com tipos corretos
             const payload = {
                 empresa: formData.get("empresa")?.toString() || '',
                 loja: Number(formData.get("loja") || 0),
                 docSap: formData.get("docSap")?.toString() || '',
+                competencia: competenciaDateTime || undefined,
                 tipo_registro: formData.get("tipo_registro")?.toString() || '',
                 cnpj_tomador: formData.get("cnpj_tomador")?.toString() || '',
                 municipio_tomador: formData.get("municipio_tomador")?.toString() || '',
@@ -364,6 +371,7 @@ const EditRegisterPage = () => {
                         empresa: registerData.empresa?.toString() || "",
                         loja: registerData.loja?.toString() || "",
                         docSap: registerData.docSap || "",
+                        competencia: registerData.competencia ? registerData.competencia.slice(0, 7) : "",
                         tipo_registro: registerData.tipo_registro || "",
                         cnpj_tomador: registerData.cnpj_tomador || "",
                         municipio_tomador: registerData.municipio_tomador || "",
@@ -469,6 +477,14 @@ const EditRegisterPage = () => {
                                         label: "DOC SAP",
                                         type: "text",
                                         value: register.docSap,
+                                        required: true,
+                                        containerClass: "col-span-1 sm:col-span-1"
+                                    },
+                                    {
+                                        name: "competencia",
+                                        label: "COMPETÊNCIA",
+                                        type: "month", // Mostra apenas mês e ano
+                                        value: register.competencia ? register.competencia.slice(0, 7) : "", // "YYYY-MM"
                                         required: true,
                                         containerClass: "col-span-1 sm:col-span-1"
                                     },
@@ -688,8 +704,8 @@ const EditRegisterPage = () => {
                                         options: [
                                             { value: "", label: "Selecione..." },
                                             { value: "CONCLUIDO", label: "Concluído" },
-
                                             { value: "PENDENTE", label: "Pendente" },
+                                            { value: "ERRO_SISTEMA", label: "Erro de Sistema" },
                                             { value: "ERRO_LOGIN", label: "Erro de login" },
                                             { value: "MODULO_NAO_HABILITADO", label: "Módulo de escrituração não habilitado" },
                                             { value: "SEM_ACESSO", label: "Sem acesso" },

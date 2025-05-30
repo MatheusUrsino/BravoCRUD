@@ -11,6 +11,7 @@ interface StatusDonutChartProps {
     total: number;
     concluido: number;
     erro_login: number;
+    erro_sistema: number;
     modulo_nao_habilitado: number;
     sem_acesso: number;
     pendencia: number;
@@ -23,6 +24,7 @@ interface StatusDonutChartProps {
 const STATUS_LABELS = [
   { key: "concluido", label: "Concluído", color: "#32CD32" },
   { key: "erro_login", label: "Erro de login", color: "#FF4500" },
+  { key: "erro_sistema", label: "Erro de sistema", color: "#FFD600" },
   { key: "modulo_nao_habilitado", label: "Módulo não habilitado", color: "#6366F1" },
   { key: "sem_acesso", label: "Sem acesso", color: "#3B82F6" },
   { key: "pendencia", label: "Pendência", color: "#FF0000" },
@@ -97,6 +99,7 @@ export function StatusDonutChart({ stats, theme, showDataLabels }: StatusDonutCh
   const series = [
     stats.concluido,
     stats.erro_login,
+    stats.erro_sistema,
     stats.modulo_nao_habilitado,
     stats.sem_acesso,
     stats.pendencia,
