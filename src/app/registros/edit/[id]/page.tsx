@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Storage } from "appwrite";
 import client from "@/config/appwrite.config";
-import { formatCNPJ } from "@/utils/formatters";
+import { calculateVlIssqn, formatCNPJ, formatCurrency, parseFormValue } from "@/utils/formatters";
 import { useTheme } from "@/context/ThemeContext";
 
 interface FileUploadResult {
@@ -122,41 +122,19 @@ const EditRegisterPage = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [fileToRemove, setFileToRemove] = useState<"pdf_anexo1" | "pdf_anexo2" | null>(null);
 
-    const formatCurrency = (value: number) => {
-        return value.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-    };
 
-    const parseFormValue = (value: string | null): number => {
-        if (!value) return 0;
-        return parseFloat(value
-            .replace(/\./g, '')
-            .replace(',', '.')
-            .replace('%', '')
-            .replace(/[^\d.-]/g, '')
-        ) || 0;
-    };
 
-    const calculateVlIssqn = (currentValues: Partial<RegisterFormData> = register) => {
-        const base = parseFormValue(currentValues.base_calculo?.toString() || '0');
-        const aliquota = parseFormValue(currentValues.aliquota?.toString() || '0');
-        const multa = parseFormValue(currentValues.multa?.toString() || '0');
-        const juros = parseFormValue(currentValues.juros?.toString() || '0');
-        const taxa = parseFormValue(currentValues.taxa?.toString() || '0');
 
-        const vlIssqn = (base * (aliquota / 10000)) + multa + juros + taxa;
-
-        return {
-            raw: vlIssqn,
-            formatted: vlIssqn
-        };
-    };
 
     useEffect(() => {
-        const calculatedVlIssqn = calculateVlIssqn();
-        setRegister(prev => ({
+        const calculatedVlIssqn = calculateVlIssqn({
+            base_calculo: register.base_calculo,
+            aliquota: register.aliquota,
+            multa: register.multa,
+            juros: register.juros,
+            taxa: register.taxa,
+            faturamento: register.faturamento,
+        }); setRegister(prev => ({
             ...prev,
             vl_issqn: calculatedVlIssqn.raw // Salva o valor numérico!
         }));
@@ -184,8 +162,15 @@ const EditRegisterPage = () => {
         setLoading(true);
 
         try {
+            const dataEmissaoStr = formData.get("data_emissao")?.toString();
+            let dataEmissaoISO = "";
+            if (dataEmissaoStr) {
+                const [year, month, day] = dataEmissaoStr.split('-').map(Number);
+                const date = new Date(year, month - 1, day, 12, 0, 0); // 12:00 local
+                dataEmissaoISO = date.toISOString();
+            }
             const requiredFields = [
-                "empresa", "loja", "docSap", "competencia", "cnpj_tomador", "im_tomador", "municipio_tomador",
+                "empresa", "loja", "docSap", "competencia", "cnpj_tomador", "municipio_tomador",
                 "status_empresa", "estado_tomador", "vcto_guias_iss_proprio", "data_emissao"
             ];
 
@@ -270,13 +255,12 @@ const EditRegisterPage = () => {
                 numero_nota: formData.get("numero_nota")?.toString() || '',
                 data_nota: formData.get("data_nota")?.toString() || '',
                 codigo_servico: formData.get("codigo_servico")?.toString() || '',
-                faturamento: parseFormValue(formData.get("faturamento")?.toString() || ''),
-                base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || ''),
-                aliquota: parseFormValue(formData.get("aliquota")?.toString() || ''),
-                multa: parseFormValue(formData.get("multa")?.toString() || ''),
-                juros: parseFormValue(formData.get("juros")?.toString() || ''),
-                taxa: parseFormValue(formData.get("taxa")?.toString() || ''),
-                vl_issqn: finalCalculation.raw,
+                faturamento: parseFormValue(formData.get("faturamento")?.toString() || '') ?? undefined,
+                base_calculo: parseFormValue(formData.get("base_calculo")?.toString() || '') ?? undefined,
+                aliquota: parseFormValue(formData.get("aliquota")?.toString() || '') ?? undefined,
+                multa: parseFormValue(formData.get("multa")?.toString() || '') ?? undefined,
+                juros: parseFormValue(formData.get("juros")?.toString() || '') ?? undefined,
+                taxa: parseFormValue(formData.get("taxa")?.toString() || '') ?? undefined,
                 iss_retido: formData.get("iss_retido")?.toString() || '',
                 status_empresa: formData.get("status_empresa")?.toString() || '',
                 status: formData.get("status")?.toString() || null,
@@ -825,8 +809,8 @@ const EditRegisterPage = () => {
                                 ]}
                                 btnTitle="Atualizar Registro"
                                 btnClass={`w-full mt-5 font-medium transition-colors duration-200 rounded-lg py-3 px-4 ${theme === "dark"
-                                        ? "bg-indigo-700 hover:bg-indigo-800 text-white"
-                                        : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    ? "bg-indigo-700 hover:bg-indigo-800 text-white"
+                                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
                                     }`}
                                 gridClass="grid grid-cols-1 sm:grid-cols-2 gap-6"
                             />

@@ -1,6 +1,7 @@
 import { FiMapPin, FiDollarSign, FiCalendar, FiUser, FiFileText } from "react-icons/fi";
 import { Models } from "appwrite";
 import { useTheme } from "@/context/ThemeContext";
+import { formatCNPJ, formatCompetencia, formatCurrency, formatDate, formatPercentage } from "@/utils/formatters";
 
 interface RegistrosTableExpandedRowProps {
   data: Models.Document;
@@ -25,81 +26,7 @@ const getStatusLabel = (statusValue: string) => {
   return status ? status.label : statusValue;
 };
 
-/**
- * Formata um CNPJ (adiciona pontuação)
- * @param cnpj - String contendo o CNPJ (com ou sem formatação)
- * @returns CNPJ formatado (00.000.000/0000-00)
- */
-const formatCNPJ = (cnpj: string): string => {
-  if (!cnpj) return "";
-  const cleaned = cnpj.replace(/\D/g, '');
-  return cleaned.replace(
-    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-    '$1.$2.$3/$4-$5'
-  );
-};
 
-/**
- * Formata competência para MM/YYYY ou YYYY-MM
- */
-const formatCompetencia = (competencia: string): string => {
-  if (!competencia) return "";
-  // Aceita formatos "2024-06-01T00:00:00.000Z" ou "2024-06"
-  const match = competencia.match(/^(\d{4})-(\d{2})/);
-  if (!match) return competencia;
-  return `${match[2]}/${match[1]}`; // MM/YYYY
-};
-
-/**
- * Formata valores monetários
- * @param value - Valor numérico ou string
- * @returns Valor formatado (R$ 1.234,56)
- */
-const formatCurrency = (value: number | string): string => {
-  if (value === null || value === undefined || value === '') return '';
-
-  const num = typeof value === 'string'
-    ? parseFloat(value.replace(/[^\d]/g, '')) / 100
-    : value;
-
-  if (isNaN(num)) return '';
-
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(num);
-};
-
-/**
- * Formata datas para o padrão brasileiro (dd/mm/aaaa)
- * @param dateString - Data em formato ISO ou string reconhecível
- * @returns Data formatada
- */
-const formatDateToBR = (dateString: string): string => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString('pt-BR');
-};
-
-/**
- * Formata valores percentuais
- * @param value - Valor numérico ou string
- * @returns Valor formatado (ex: "12,34%")
- */
-const formatPercentage = (value: number | string): string => {
-  if (!value && value !== 0) return '';
-  let num = typeof value === 'string'
-    ? parseFloat(value.replace(/[^\d.,-]/g, '').replace(',', '.'))
-    : value;
-  if (isNaN(num)) return '';
-  if (Math.abs(num) < 1) num = num * 100;
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'percent',
-    minimumFractionDigits: num % 1 !== 0 ? 2 : 0,
-    maximumFractionDigits: num % 1 !== 0 ? 2 : 0
-  }).format(num / 100);
-};
 
 export const RegistrosTableExpandedRow = ({
   data,
@@ -254,7 +181,7 @@ export const RegistrosTableExpandedRow = ({
               </h4>
               <ul style={{ fontSize: 15, color: theme === "dark" ? "#bae6fd" : "#1e293b", listStyle: "none", padding: 0, margin: 0 }}>
                 <li><span style={{ fontWeight: 500 }}>Número:</span> {data.numero_nota}</li>
-                <li><span style={{ fontWeight: 500 }}>Data:</span> {formatDateToBR(data.data_nota)}</li>
+                <li><span style={{ fontWeight: 500 }}>Data:</span> {formatDate(data.data_nota)}</li>
                 <li><span style={{ fontWeight: 500 }}>Código Serviço:</span> {data.codigo_servico}</li>
                 <li><span style={{ fontWeight: 500 }}>ISS Retido:</span> {data.iss_retido ? "Sim" : "Não"}</li>
                 <li><span style={{ fontWeight: 500 }}>Quantidade:</span> {data.qtd}</li>
@@ -286,7 +213,7 @@ export const RegistrosTableExpandedRow = ({
               <ul style={{ fontSize: 15, color: theme === "dark" ? "#bae6fd" : "#1e293b", listStyle: "none", padding: 0, margin: 0 }}>
                 <li><span style={{ fontWeight: 500 }}>Faturamento:</span> {formatCurrency(data.faturamento)}</li>
                 <li><span style={{ fontWeight: 500 }}>Base Cálculo:</span> {formatCurrency(data.base_calculo)}</li>
-                <li><span style={{ fontWeight: 500 }}>Alíquota:</span> {formatPercentage(data.aliquota)}</li>
+                <li><span style={{ fontWeight: 500 }}>Alíquota:</span> {formatPercentage(data.aliquota * 100) }</li>
                 <li><span style={{ fontWeight: 500 }}>Multa:</span> {formatCurrency(data.multa)}</li>
                 <li><span style={{ fontWeight: 500 }}>Juros:</span> {formatCurrency(data.juros)}</li>
                 <li><span style={{ fontWeight: 500 }}>Taxa:</span> {formatCurrency(data.taxa)}</li>
@@ -317,8 +244,8 @@ export const RegistrosTableExpandedRow = ({
                 <FiCalendar color={theme === "dark" ? "#60a5fa" : "#2563eb"} /> Outras Informações
               </h4>
               <ul style={{ fontSize: 15, color: theme === "dark" ? "#bae6fd" : "#1e293b", listStyle: "none", padding: 0, margin: 0 }}>
-                <li><span style={{ fontWeight: 500 }}>Vencimento:</span> {formatDateToBR(data.vcto_guias_iss_proprio)}</li>
-                <li><span style={{ fontWeight: 500 }}>Emissão:</span> {formatDateToBR(data.data_emissao)}</li>
+                <li><span style={{ fontWeight: 500 }}>Vencimento:</span> {formatDate(data.vcto_guias_iss_proprio)}</li>
+                <li><span style={{ fontWeight: 500 }}>Emissão:</span> {formatDate(data.data_emissao)}</li>
                 <li><span style={{ fontWeight: 500 }}>Status:</span> {getStatusLabel(data.status)}</li>
                 <li><span style={{ fontWeight: 500 }}>Histórico:</span> {data.historico}</li>
                 <li style={{ display: "flex", alignItems: "center", gap: 6 }}>

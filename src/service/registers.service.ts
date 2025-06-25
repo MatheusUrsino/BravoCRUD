@@ -64,7 +64,7 @@ class RegistersService {
       return await this.db.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID as string,
         process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID as string,
-        [Query.limit(1000)] // limite máximo permitido por chamada
+        [Query.limit(10000000000)] // limite máximo permitido por chamada
       );
     } catch (error) {
       console.error("Erro ao buscar todos os documentos:", error);
@@ -252,6 +252,19 @@ class RegistersService {
       throw new Error("Falha ao deletar arquivo");
     }
   }
+
+   public async deleteAllDocuments(): Promise<void> {
+    try {
+      const allDocs = await this.getAllDocuments();
+      const deletePromises = allDocs.documents.map(doc => this.delete(doc.$id));
+      await Promise.all(deletePromises);
+    } catch (error) {
+      console.error("Erro ao deletar todos os documentos:", error);
+      throw new Error("Falha ao deletar todos os documentos");
+    }
+  }
 }
+
+
 
 export default RegistersService;

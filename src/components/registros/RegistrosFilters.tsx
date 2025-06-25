@@ -171,12 +171,11 @@ export function RegistrosFilters({
           {filters.map((filter) => {
             const fieldLabel = availableFields.find(f => f.value === filter.field)?.label || filter.field;
             let displayValue = filter.value;
-
             if (filter.type === "date") {
               try {
                 const date = new Date(filter.value);
                 displayValue = !isNaN(date.getTime())
-                  ? date.toLocaleDateString("pt-BR")
+                  ? `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`
                   : filter.value;
               } catch {
                 displayValue = filter.value;
